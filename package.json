@@ -1,0 +1,88 @@
+{
+  "name": "codememory",
+  "displayName": "CodeMemory",
+  "description": "The living architectural brain for your codebase — persistent decisions, multi-provider AI, zero context loss.",
+  "version": "0.1.0",
+  "publisher": "codememory",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["AI", "Other"],
+  "keywords": ["AI", "architecture", "memory", "decisions", "context"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "codememory.selectProvider",      "title": "Select AI Provider",         "category": "CodeMemory", "icon": "$(sparkle)" },
+      { "command": "codememory.quickSwitchProvider", "title": "Quick Switch AI Provider",   "category": "CodeMemory", "icon": "$(arrow-swap)" },
+      { "command": "codememory.captureDecision",     "title": "Capture Decision",           "category": "CodeMemory", "icon": "$(add)" },
+      { "command": "codememory.searchDecisions",     "title": "Search Decisions",           "category": "CodeMemory", "icon": "$(search)" },
+      { "command": "codememory.askAI",               "title": "Ask AI About Codebase",      "category": "CodeMemory", "icon": "$(comment-discussion)" },
+      { "command": "codememory.openTokenDashboard",  "title": "Open Token Usage Dashboard", "category": "CodeMemory", "icon": "$(pulse)" },
+      { "command": "codememory.refreshSidebar",      "title": "Refresh Decisions",          "category": "CodeMemory", "icon": "$(refresh)" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "codememory.captureDecision", "group": "codememory", "when": "editorHasSelection" }
+      ],
+      "view/title": [
+        { "command": "codememory.refreshSidebar",  "group": "navigation", "when": "view == codememory.decisionsTree" },
+        { "command": "codememory.captureDecision", "group": "navigation", "when": "view == codememory.decisionsTree" }
+      ]
+    },
+    "keybindings": [
+      { "command": "codememory.quickSwitchProvider", "key": "ctrl+shift+alt+p", "mac": "cmd+shift+alt+p" },
+      { "command": "codememory.captureDecision",     "key": "ctrl+shift+alt+d", "mac": "cmd+shift+alt+d" },
+      { "command": "codememory.askAI",               "key": "ctrl+shift+alt+a", "mac": "cmd+shift+alt+a" }
+    ],
+    "views": {
+      "explorer": [
+        { "id": "codememory.decisionsTree", "name": "CodeMemory Decisions", "icon": "$(circuit-board)" }
+      ]
+    },
+    "configuration": {
+      "title": "CodeMemory",
+      "properties": {
+        "codememory.activeProviderId": {
+          "type": "string",
+          "enum": ["claude", "openai", "gemini"],
+          "default": "claude",
+          "description": "Active AI provider."
+        },
+        "codememory.maxDecisionsPerQuery": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum decisions injected per AI prompt."
+        },
+        "codememory.cacheTtlSeconds": {
+          "type": "number",
+          "default": 300,
+          "minimum": 60,
+          "maximum": 3600,
+          "description": "Prompt cache TTL in seconds."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.config.js",
+    "watch": "node esbuild.config.js --watch",
+    "package": "vsce package",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@google/generative-ai": "^0.2.0",
+    "@xenova/transformers": "^2.17.0",
+    "better-sqlite3": "^9.4.0",
+    "openai": "^4.24.0"
+  }
+}
