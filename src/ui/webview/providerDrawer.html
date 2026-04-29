@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src data:;" />
+<title>CodeMemory · AI Provider</title>
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── FONTS (loaded from VS Code host) ── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+/* ── DESIGN TOKENS ── */
+:root {
+  --bg:          #050508;
+  --surface:     rgba(10, 10, 18, 0.82);
+  --surface-hi:  rgba(16, 16, 30, 0.9);
+  --border:      rgba(255,255,255,0.06);
+  --border-hi:   rgba(255,255,255,0.12);
+  --text:        #dde1f0;
+  --text-dim:    #7a7fa8;
+  --text-dimmer: #3a3d5a;
+
+  /* Neon accents */
+  --cyan:        #4fc3f7;
+  --purple:      #7c6ee0;
+  --gold:        #f6c445;
+  --violet:      #8b5cf6;
+  --green:       #34d399;
+  --red:         #f87171;
+
+  --radius-card: 18px;
+  --radius-input: 12px;
+}
+
+/* ── BASE ── */
+html { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-backface-visibility: hidden;
+}
+
+/* ── FRACTAL NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  animation: noise-drift 8s linear infinite;
+}
+
+@keyframes noise-drift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-1%, 1%); }
+  50%  { transform: translate(1%, -1%); }
+  75%  { transform: translate(-1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ── AMBIENT ORBS ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(124,110,224,0.08) 0%, transparent 70%);
+  top: -20%; left: -15%;
+  animation: float-1 18s ease-in-out infinite;
+}
+.orb-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(79,195,247,0.06) 0%, transparent 70%);
+  bottom: -10%; right: -10%;
+  animation: float-2 22s ease-in-out infinite;
+}
+
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(4%, 3%) scale(1.05); }
+  66%       { transform: translate(-3%, 5%) scale(0.97); }
+}
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-5%, -4%) scale(1.08); }
+  70%       { transform: translate(3%, -2%) scale(0.95); }
+}
+
+/* ── LAYOUT ── */
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(124,110,224,0.3);
+}
+
+.logo-mark svg { width: 18px; height: 18px; color: #fff; }
+
+.header-text {}
+.header-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1;
+}
+.header-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dimmer);
+  margin-top: 3px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── ACTIVE PROVIDER BADGE ── */
+.active-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  padding: 5px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.active-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+
+.active-dot.inactive {
+  background: var(--text-dimmer);
+  box-shadow: none;
+}
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-dimmer);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── PROVIDER GRID ── */
+.provider-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── PROVIDER CARD ── */
+.provider-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  -webkit-backface-visibility: hidden;
+}
+
+.provider-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.provider-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.provider-card:hover::before { opacity: 1; }
+
+.provider-card:active {
+  transform: scale(0.98) translateY(0);
+  transition-duration: 0.1s;
+}
+
+.provider-card.selected {
+  border-color: var(--accent-color, var(--purple));
+  box-shadow: 0 0 0 1px var(--accent-color, var(--purple)),
+              0 8px 32px rgba(0,0,0,0.25),
+              0 0 30px rgba(var(--accent-rgb, 124,110,224), 0.08);
+}
+
+/* Provider icon container */
+.provider-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border-hi);
+  background: var(--surface-hi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.provider-card.selected .provider-icon-wrap {
+  border-color: var(--accent-color, var(--purple));
+  box-shadow: 0 0 12px rgba(var(--accent-rgb, 124,110,224), 0.25);
+}
+
+.provider-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Provider text */
+.provider-info { flex: 1; min-width: 0; }
+.provider-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin-bottom: 4px;
+  transition: color 0.25s ease;
+}
+
+.provider-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Config state chip */
+.config-chip {
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid;
+  transition: all 0.25s ease;
+}
+
+.config-chip.configured {
+  color: var(--green);
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.config-chip.not-configured {
+  color: var(--text-dimmer);
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* ── KEY INPUT PANEL ── */
+.key-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.key-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.key-panel-provider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.key-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.key-panel-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dimmer);
+  margin-left: auto;
+}
+
+.key-panel-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── INPUT FIELD ── */
+.input-wrap {
+  position: relative;
+}
+
+.key-input {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-input);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 13px 44px 13px 16px;
+  outline: none;
+  transition: border-color 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              background 0.25s ease;
+  caret-color: var(--cyan);
+}
+
+.key-input::placeholder {
+  color: var(--text-dimmer);
+  letter-spacing: 0.04em;
+}
+
+.key-input:focus {
+  border-color: var(--focus-color, var(--cyan));
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.08),
+              0 0 20px rgba(79,195,247,0.06);
+  background: rgba(0,0,0,0.5);
+}
+
+/* Toggle visibility button */
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dimmer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.eye-btn:hover {
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── ACTION ROW ── */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── APPLY BUTTON ── */
+.apply-btn {
+  flex: 1;
+  background: linear-gradient(135deg, var(--btn-from, #7c6ee0) 0%, var(--btn-to, #4fc3f7) 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 12px 20px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: filter 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.25s ease;
+  will-change: transform;
+}
+
+.apply-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.apply-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 20px rgba(124,110,224,0.35);
+}
+
+.apply-btn:hover::before { opacity: 1; }
+
+.apply-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+  transition-duration: 0.08s;
+}
+
+.apply-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+.apply-btn .btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── REMOVE BUTTON ── */
+.remove-btn {
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 10px;
+  color: var(--red);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  display: none;
+}
+
+.remove-btn:hover {
+  background: rgba(248,113,113,0.14);
+  border-color: rgba(248,113,113,0.4);
+}
+
+.remove-btn:active { transform: scale(0.97); }
+.remove-btn.visible { display: flex; align-items: center; gap: 6px; }
+
+/* ── STATUS MESSAGE ── */
+.status-msg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid;
+  animation: slide-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  display: none;
+}
+
+.status-msg.success {
+  color: var(--green);
+  border-color: rgba(52,211,153,0.25);
+  background: rgba(52,211,153,0.06);
+  display: flex;
+}
+
+.status-msg.error {
+  color: var(--red);
+  border-color: rgba(248,113,113,0.25);
+  background: rgba(248,113,113,0.06);
+  display: flex;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── MODEL SELECTOR ── */
+.model-section { display: flex; flex-direction: column; gap: 8px; }
+
+.model-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.model-select {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 10px 14px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%237a7fa8' d='M8 10.5L3 5.5h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.model-select:focus {
+  border-color: var(--focus-color, var(--cyan));
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.08);
+}
+
+.model-select option {
+  background: #0f0f1a;
+  color: var(--text);
+}
+
+/* ── INFO LINK ── */
+.info-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dimmer);
+  text-align: center;
+  padding-top: 4px;
+}
+
+.info-link a {
+  color: var(--focus-color, var(--cyan));
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.info-link a:hover { opacity: 1; }
+
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <div class="header-title">CodeMemory</div>
+      <div class="header-sub">AI Provider Configuration</div>
+    </div>
+    <div class="active-badge" id="activeBadge">
+      <span class="active-dot inactive" id="activeDot"></span>
+      <span id="activeLabel">No provider</span>
+    </div>
+  </header>
+
+  <!-- PROVIDER SELECTION -->
+  <div class="section-label">Select Provider</div>
+
+  <div class="provider-grid" id="providerGrid">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- KEY CONFIGURATION PANEL -->
+  <div class="section-label" id="keySection" style="display:none">Configure Key</div>
+
+  <div class="key-panel" id="keyPanel" style="display:none">
+    <div class="key-panel-header">
+      <div class="key-panel-provider-dot" id="panelDot"></div>
+      <div class="key-panel-title" id="panelTitle">API Key</div>
+      <div class="key-panel-hint" id="panelHint">sk-ant-api03-...</div>
+    </div>
+    <div class="key-panel-body">
+
+      <!-- Status message -->
+      <div class="status-msg" id="statusMsg" role="alert">
+        <span id="statusIcon">✓</span>
+        <span id="statusText"></span>
+      </div>
+
+      <!-- API Key Input -->
+      <div class="input-wrap">
+        <input
+          class="key-input"
+          id="keyInput"
+          type="password"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="Paste your API key here"
+        />
+        <button class="eye-btn" id="eyeBtn" title="Toggle visibility" aria-label="Toggle API key visibility">
+          <svg id="eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Model Selector -->
+      <div class="model-section" id="modelSection">
+        <div class="model-label">Model</div>
+        <select class="model-select" id="modelSelect"></select>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-row">
+        <button class="remove-btn" id="removeBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+          </svg>
+          Remove
+        </button>
+        <button class="apply-btn" id="applyBtn">Apply Key</button>
+      </div>
+
+      <!-- Info link -->
+      <div class="info-link" id="infoLink">
+        Get your key at <a href="#" id="keyLink">provider dashboard</a>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+  // ── VS Code API Bridge ──────────────────────────────────────────────────────
+  const vscode = acquireVsCodeApi();
+
+  // ── State ───────────────────────────────────────────────────────────────────
+  let state = {
+    providers: [],       // ProviderMetadata[]
+    activeProviderId: null,
+    configuredIds: [],
+    selectedId: null,    // currently open in the key panel
+    keyVisible: false,
+    validating: false,
+  };
+
+  // ── DOM Refs ────────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const grid      = $('providerGrid');
+  const keyPanel  = $('keyPanel');
+  const keySection = $('keySection');
+  const keyInput  = $('keyInput');
+  const eyeBtn    = $('eyeBtn');
+  const eyeIcon   = $('eyeIcon');
+  const applyBtn  = $('applyBtn');
+  const removeBtn = $('removeBtn');
+  const statusMsg = $('statusMsg');
+  const modelSel  = $('modelSelect');
+  const activeDot = $('activeDot');
+  const activeLabel = $('activeLabel');
+  const panelTitle  = $('panelTitle');
+  const panelHint   = $('panelHint');
+  const panelDot    = $('panelDot');
+  const infoLink    = $('infoLink');
+  const keyLink     = $('keyLink');
+
+  // ── Receive messages from extension ─────────────────────────────────────────
+  window.addEventListener('message', (event) => {
+    const msg = event.data;
+    switch (msg.type) {
+      case 'init':
+        state.providers      = msg.providers;
+        state.activeProviderId = msg.activeProviderId;
+        state.configuredIds  = msg.configuredIds;
+        renderAll();
+        // Auto-expand active or first provider
+        const autoOpen = state.activeProviderId ?? (state.providers[0]?.id);
+        if (autoOpen) openProvider(autoOpen);
+        break;
+
+      case 'validation-result':
+        handleValidationResult(msg.result, msg.providerId);
+        break;
+
+      case 'key-removed':
+        state.configuredIds = state.configuredIds.filter(id => id !== msg.providerId);
+        renderProviderCards();
+        showStatus('success', 'Key removed.');
+        removeBtn.classList.remove('visible');
+        keyInput.value = '';
+        break;
+
+      case 'provider-changed':
+        state.activeProviderId = msg.providerId;
+        renderProviderCards();
+        updateActiveBadge();
+        break;
+    }
+  });
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  function renderAll() {
+    renderProviderCards();
+    updateActiveBadge();
+  }
+
+  function renderProviderCards() {
+    grid.innerHTML = '';
+    for (const p of state.providers) {
+      const configured = state.configuredIds.includes(p.id);
+      const isActive   = state.activeProviderId === p.id;
+      const isSelected = state.selectedId === p.id;
+
+      const card = document.createElement('div');
+      card.className = 'provider-card' + (isSelected ? ' selected' : '');
+      card.style.setProperty('--accent-color', p.accentColor);
+      card.dataset.providerId = p.id;
+
+      // Top shimmer line using accent
+      card.style.setProperty('--shimmer', p.accentColor);
+      const beforeStyle = document.createElement('style');
+      beforeStyle.textContent = `
+        [data-provider-id="${p.id}"]::before {
+          background: linear-gradient(90deg, transparent, ${p.accentColor}60, transparent);
+        }
+      `;
+      document.head.appendChild(beforeStyle);
+
+      card.innerHTML = `
+        <div class="provider-icon-wrap" style="color: ${p.accentColor}">
+          ${p.iconSvg}
+        </div>
+        <div class="provider-info">
+          <div class="provider-name" style="${isSelected ? `color: ${p.accentColor}` : ''}">${p.displayName}</div>
+          <div class="provider-desc">${p.description}</div>
+        </div>
+        <span class="config-chip ${configured ? 'configured' : 'not-configured'}">
+          ${isActive ? '▶ Active' : configured ? 'Configured' : 'Not set'}
+        </span>
+      `;
+
+      card.addEventListener('click', () => openProvider(p.id));
+      grid.appendChild(card);
+    }
+  }
+
+  function updateActiveBadge() {
+    if (state.activeProviderId) {
+      const p = state.providers.find(x => x.id === state.activeProviderId);
+      activeDot.className = 'active-dot';
+      activeDot.style.background = p?.accentColor ?? 'var(--green)';
+      activeDot.style.boxShadow  = `0 0 6px ${p?.accentColor ?? 'var(--green)'}`;
+      activeLabel.textContent = p?.displayName ?? state.activeProviderId;
+    } else {
+      activeDot.className = 'active-dot inactive';
+      activeDot.style.background = '';
+      activeDot.style.boxShadow = '';
+      activeLabel.textContent = 'No provider';
+    }
+  }
+
+  // ── Open Provider Panel ──────────────────────────────────────────────────────
+  function openProvider(providerId) {
+    state.selectedId = providerId;
+    const p = state.providers.find(x => x.id === providerId);
+    if (!p) return;
+
+    // Update card selections
+    renderProviderCards();
+
+    // Show panel
+    keySection.style.display = '';
+    keyPanel.style.display   = '';
+
+    // Panel header
+    panelDot.style.background = p.accentColor;
+    panelDot.style.boxShadow  = `0 0 8px ${p.accentColor}80`;
+    panelTitle.textContent = `${p.displayName} — API Key`;
+    panelHint.textContent  = p.apiKeyPlaceholder.slice(0, 20) + '...';
+
+    // Input placeholder & focus color
+    keyInput.placeholder = p.apiKeyPlaceholder;
+    keyInput.style.setProperty('--focus-color', p.accentColor);
+
+    // Apply button gradient
+    applyBtn.style.setProperty('--btn-from', p.accentColor);
+    applyBtn.style.setProperty('--btn-to',   shiftColor(p.accentColor));
+
+    // Info link
+    keyLink.textContent = p.displayName + ' dashboard';
+    keyLink.href = p.apiKeyUrl;
+    keyLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      vscode.postMessage({ type: 'open-url', url: p.apiKeyUrl });
+    });
+
+    // Models
+    modelSel.innerHTML = p.models
+      .map(m => `<option value="${m.id}">${m.displayName} · ${(m.contextWindow/1000).toFixed(0)}k ctx</option>`)
+      .join('');
+    modelSel.value = p.defaultModel;
+
+    // Remove button visibility
+    const configured = state.configuredIds.includes(providerId);
+    removeBtn.classList.toggle('visible', configured);
+
+    // Clear state
+    keyInput.value = '';
+    hideStatus();
+    state.keyVisible = false;
+    keyInput.type = 'password';
+    updateEyeIcon();
+  }
+
+  // ── Eye Toggle ───────────────────────────────────────────────────────────────
+  eyeBtn.addEventListener('click', () => {
+    state.keyVisible = !state.keyVisible;
+    keyInput.type = state.keyVisible ? 'text' : 'password';
+    updateEyeIcon();
+  });
+
+  function updateEyeIcon() {
+    eyeIcon.innerHTML = state.keyVisible
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+
+  // ── Apply ────────────────────────────────────────────────────────────────────
+  applyBtn.addEventListener('click', async () => {
+    const key = keyInput.value.trim();
+    if (!key) {
+      showStatus('error', 'Please enter an API key.');
+      return;
+    }
+    if (!state.selectedId) return;
+
+    setValidating(true);
+    vscode.postMessage({
+      type: 'apply-key',
+      providerId: state.selectedId,
+      apiKey: key,
+      model: modelSel.value,
+    });
+  });
+
+  // ── Remove ───────────────────────────────────────────────────────────────────
+  removeBtn.addEventListener('click', () => {
+    if (!state.selectedId) return;
+    vscode.postMessage({ type: 'remove-key', providerId: state.selectedId });
+  });
+
+  // ── Enter key ───────────────────────────────────────────────────────────────
+  keyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applyBtn.click();
+  });
+
+  // ── Validation Result Handler ────────────────────────────────────────────────
+  function handleValidationResult(result, providerId) {
+    setValidating(false);
+    if (result.valid) {
+      state.configuredIds = [...new Set([...state.configuredIds, providerId])];
+      showStatus('success', `Key accepted. ${state.providers.find(p=>p.id===providerId)?.displayName} is ready.`);
+      removeBtn.classList.add('visible');
+      keyInput.value = '';
+      renderProviderCards();
+      updateActiveBadge();
+    } else {
+      showStatus('error', result.error ?? 'Validation failed.');
+    }
+  }
+
+  // ── Status ───────────────────────────────────────────────────────────────────
+  function showStatus(type, text) {
+    statusMsg.className = `status-msg ${type}`;
+    $('statusIcon').textContent = type === 'success' ? '✓' : '✗';
+    $('statusText').textContent = text;
+  }
+
+  function hideStatus() {
+    statusMsg.className = 'status-msg';
+  }
+
+  // ── Loading State ────────────────────────────────────────────────────────────
+  function setValidating(loading) {
+    state.validating = loading;
+    applyBtn.disabled = loading;
+    applyBtn.innerHTML = loading
+      ? `<span class="btn-spinner"></span>Validating…`
+      : 'Apply Key';
+  }
+
+  // ── Color Utility ────────────────────────────────────────────────────────────
+  function shiftColor(hex) {
+    // Simple hue rotation for gradient "to" color
+    const map = {
+      '#D4A574': '#7c6ee0',
+      '#10A37F': '#4fc3f7',
+      '#4285F4': '#34d399',
+      '#7c6ee0': '#4fc3f7',
+    };
+    return map[hex] ?? '#4fc3f7';
+  }
+
+  // ── Request initial state ────────────────────────────────────────────────────
+  vscode.postMessage({ type: 'ready' });
+</script>
+</body>
+</html>
