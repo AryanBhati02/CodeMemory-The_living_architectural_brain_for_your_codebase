@@ -46,6 +46,14 @@ export class SecretStorageService implements vscode.Disposable {
     return this.globalState.get<string>(ACTIVE_PROVIDER_KEY);
   }
 
+  async setSelectedModel(providerId: string, model: string): Promise<void> {
+    await this.globalState.update(`codememory.model.${providerId}`, model);
+  }
+
+  getSelectedModel(providerId: string): string | undefined {
+    return this.globalState.get<string>(`codememory.model.${providerId}`);
+  }
+
   onDidChange(listener: (e: vscode.SecretStorageChangeEvent) => void): vscode.Disposable {
     return this.secrets.onDidChange(listener);
   }

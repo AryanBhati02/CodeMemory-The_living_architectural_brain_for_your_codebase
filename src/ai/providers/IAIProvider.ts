@@ -15,6 +15,7 @@ export interface AIRequestOptions {
     thinkingBudget?: number;
     stream?: boolean;
     signal?: AbortSignal;
+    model?: string;
 }
 
 

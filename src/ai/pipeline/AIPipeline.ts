@@ -103,6 +103,7 @@ export class AIPipeline {
 
     
     const provider = this.providerManager.getActiveProvider();
+    const selectedModel = this.secrets.getSelectedModel(providerId) ?? provider.capabilities.defaultModel;
 
     
     const messages: AIMessage[] = [
@@ -117,6 +118,7 @@ export class AIPipeline {
       temperature: 0.3,
       stream,
       signal,
+      model: selectedModel,
     };
 
     

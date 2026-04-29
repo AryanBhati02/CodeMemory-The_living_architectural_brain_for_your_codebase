@@ -710,6 +710,7 @@ body::before {
     providers: [],       // ProviderMetadata[]
     activeProviderId: null,
     configuredIds: [],
+    selectedModels: {},  // { [providerId]: string }
     selectedId: null,    // currently open in the key panel
     keyVisible: false,
     validating: false,
@@ -743,6 +744,9 @@ body::before {
         state.providers      = msg.providers;
         state.activeProviderId = msg.activeProviderId;
         state.configuredIds  = msg.configuredIds;
+        for (const p of state.providers) {
+          state.selectedModels[p.id] = p.selectedModel;
+        }
         renderAll();
         // Auto-expand active or first provider
         const autoOpen = state.activeProviderId ?? (state.providers[0]?.id);
@@ -759,6 +763,10 @@ body::before {
         showStatus('success', 'Key removed.');
         removeBtn.classList.remove('visible');
         keyInput.value = '';
+        break;
+
+      case 'model-selected':
+        state.selectedModels[msg.providerId] = msg.model;
         break;
 
       case 'provider-changed':
@@ -866,10 +874,11 @@ body::before {
     });
 
     // Models
-    modelSel.innerHTML = p.models
-      .map(m => `<option value="${m.id}">${m.displayName} · ${(m.contextWindow/1000).toFixed(0)}k ctx</option>`)
+    const availableModels = p.capabilities?.availableModels ?? [];
+    modelSel.innerHTML = availableModels
+      .map(m => `<option value="${m}">${m}</option>`)
       .join('');
-    modelSel.value = p.defaultModel;
+    modelSel.value = state.selectedModels[providerId] ?? p.selectedModel;
 
     // Remove button visibility
     const configured = state.configuredIds.includes(providerId);
@@ -882,6 +891,12 @@ body::before {
     keyInput.type = 'password';
     updateEyeIcon();
   }
+
+  // ── Model Selection ──────────────────────────────────────────────────────────
+  modelSel.addEventListener('change', () => {
+    if (!state.selectedId) return;
+    vscode.postMessage({ type: 'select-model', providerId: state.selectedId, model: modelSel.value });
+  });
 
   // ── Eye Toggle ───────────────────────────────────────────────────────────────
   eyeBtn.addEventListener('click', () => {

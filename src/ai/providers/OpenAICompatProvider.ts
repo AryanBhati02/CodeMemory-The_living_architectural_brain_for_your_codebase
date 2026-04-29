@@ -5,35 +5,57 @@ import {
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
 
-export class OpenAIProvider implements IAIProvider {
-  readonly id = 'openai';
-  readonly name = 'OpenAI';
-  readonly accentColor = '#10A37F';
-  readonly description = 'OpenAI GPT-4.1 — fast, capable, broad availability';
-  readonly apiKeyUrl = 'https://platform.openai.com/api-keys';
+interface OpenAICompatConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  defaultModel: string;
+  availableModels?: string[];
+  apiKeyUrl?: string;
+  description?: string;
+    requiresApiKey?: boolean;
+}
 
-  readonly capabilities: ProviderCapabilities = {
-    supportsStreaming: true,
-    supportsExtendedThinking: false,
-    supportsPromptCaching: false,
-    supportsFunctionCalling: true,
-    maxContextTokens: 128_000,
-    defaultModel: 'gpt-4.1',
-    availableModels: ['gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4-turbo'],
-  };
+export class OpenAICompatProvider implements IAIProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly accentColor = '#6B7280';
+  readonly description: string;
+  readonly apiKeyUrl: string;
+  readonly capabilities: ProviderCapabilities;
+
+  private readonly baseUrl: string;
+  private readonly requiresApiKey: boolean;
+
+  constructor(config: OpenAICompatConfig) {
+    this.id = config.id;
+    this.name = config.name;
+    this.baseUrl = config.baseUrl;
+    this.description = config.description ?? `${config.name} — OpenAI-compatible API`;
+    this.apiKeyUrl = config.apiKeyUrl ?? '';
+    this.requiresApiKey = config.requiresApiKey ?? true;
+
+    this.capabilities = {
+      supportsStreaming: true,
+      supportsExtendedThinking: false,
+      supportsPromptCaching: false,
+      supportsFunctionCalling: true,
+      maxContextTokens: 128_000,
+      defaultModel: config.defaultModel,
+      availableModels: config.availableModels ?? [config.defaultModel],
+    };
+  }
 
   validateKey(apiKey: string): { valid: boolean; reason?: string } {
-    if (!apiKey?.startsWith('sk-')) {
-      return { valid: false, reason: 'OpenAI keys begin with "sk-".' };
-    }
-    if (apiKey.length < 40) {
-      return { valid: false, reason: 'Key appears too short.' };
+    if (!this.requiresApiKey) return { valid: true };
+    if (!apiKey || apiKey.length < 20) {
+      return { valid: false, reason: 'API key appears too short.' };
     }
     return { valid: true };
   }
 
   async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
-    const client = new OpenAI({ apiKey });
+    const client = this._client(apiKey);
     const t0 = Date.now();
 
     try {
@@ -66,7 +88,7 @@ export class OpenAIProvider implements IAIProvider {
   }
 
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
-    const client = new OpenAI({ apiKey });
+    const client = this._client(apiKey);
     const t0 = Date.now();
 
     try {
@@ -95,7 +117,7 @@ export class OpenAIProvider implements IAIProvider {
 
       return {
         content: fullContent,
-        usage: { inputTokens: 0, outputTokens: 0 }, // stream doesn't return usage in all versions
+        usage: { inputTokens: 0, outputTokens: 0 },
         fromCache: false,
         providerId: this.id,
         latencyMs: Date.now() - t0,
@@ -105,10 +127,14 @@ export class OpenAIProvider implements IAIProvider {
     }
   }
 
+  private _client(apiKey: string): OpenAI {
+    return new OpenAI({ apiKey: apiKey || 'no-key', baseURL: this.baseUrl });
+  }
+
   private _normalizeError(err: any): AIProviderError {
     const status = err.status ?? err.statusCode;
-    if (status === 401) return new AIProviderError('Invalid OpenAI API key.', 'AUTH_ERROR', this.id, false, 401);
-    if (status === 429) return new AIProviderError('OpenAI rate limit hit.', 'RATE_LIMIT', this.id, true, 429);
+    if (status === 401) return new AIProviderError(`${this.name}: Invalid API key.`, 'AUTH_ERROR', this.id, false, 401);
+    if (status === 429) return new AIProviderError(`${this.name}: Rate limit hit.`, 'RATE_LIMIT', this.id, true, 429);
     if (status === 400) return new AIProviderError(err.message, 'CONTEXT_TOO_LONG', this.id, false, 400);
     return new AIProviderError(err.message ?? 'Unknown error', 'PROVIDER_ERROR', this.id, false, status);
   }

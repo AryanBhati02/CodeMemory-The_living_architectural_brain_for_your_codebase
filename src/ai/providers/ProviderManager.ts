@@ -3,6 +3,8 @@ import { IAIProvider, AIProviderError } from './IAIProvider';
 import { ClaudeProvider } from './ClaudeProvider';
 import { OpenAIProvider } from './OpenAIProvider';
 import { GeminiProvider } from './GeminiProvider';
+import { OllamaProvider } from './OllamaProvider';
+import { OpenAICompatProvider } from './OpenAICompatProvider';
 
 export class ProviderManager {
   private static instance: ProviderManager | undefined;
@@ -85,5 +87,32 @@ export class ProviderManager {
     this.register(new ClaudeProvider());
     this.register(new OpenAIProvider());
     this.register(new GeminiProvider());
+    this.register(new OllamaProvider());
+    this.register(new OpenAICompatProvider({
+      id: 'lmstudio',
+      name: 'LM Studio',
+      baseUrl: 'http://localhost:1234/v1',
+      defaultModel: 'local-model',
+      apiKeyUrl: 'https://lmstudio.ai',
+      description: 'LM Studio — local models via OpenAI-compatible API',
+      requiresApiKey: false,
+    }));
+    this.register(new OpenAICompatProvider({
+      id: 'groq',
+      name: 'Groq',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      defaultModel: 'llama-3.3-70b-versatile',
+      availableModels: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+      apiKeyUrl: 'https://console.groq.com/keys',
+      description: 'Groq — ultra-fast inference for open models',
+    }));
+    this.register(new OpenAICompatProvider({
+      id: 'together',
+      name: 'Together AI',
+      baseUrl: 'https://api.together.xyz/v1',
+      defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+      apiKeyUrl: 'https://api.together.ai',
+      description: 'Together AI — open models at scale',
+    }));
   }
 }

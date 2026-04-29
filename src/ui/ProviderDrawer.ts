@@ -11,6 +11,7 @@ type WebviewMessage =
   | { type: 'apply-key'; providerId: string; apiKey: string }
   | { type: 'remove-key'; providerId: string }
   | { type: 'switch-provider'; providerId: string }
+  | { type: 'select-model'; providerId: string; model: string }
   | { type: 'open-url'; url: string };
 
 export class ProviderDrawer implements vscode.Disposable {
@@ -80,6 +81,11 @@ export class ProviderDrawer implements vscode.Disposable {
         }
         break;
 
+      case 'select-model':
+        await this.secrets.setSelectedModel(msg.providerId, msg.model);
+        this._post({ type: 'model-selected', providerId: msg.providerId, model: msg.model });
+        break;
+
       case 'open-url':
         if (msg.url) vscode.env.openExternal(vscode.Uri.parse(msg.url));
         break;
@@ -94,6 +100,7 @@ export class ProviderDrawer implements vscode.Disposable {
       accentColor: p.accentColor,
       apiKeyUrl: p.apiKeyUrl,
       capabilities: p.capabilities,
+      selectedModel: this.secrets.getSelectedModel(p.id) ?? p.capabilities.defaultModel,
     }));
 
     const configuredIds: string[] = [];

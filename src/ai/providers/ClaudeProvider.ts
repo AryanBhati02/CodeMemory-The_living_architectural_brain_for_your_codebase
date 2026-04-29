@@ -40,7 +40,7 @@ export class ClaudeProvider implements IAIProvider {
   async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
-    const requestModel = this.capabilities.defaultModel;
+    const requestModel = options.model ?? this.capabilities.defaultModel;
 
     try {
       const systemContent: Anthropic.TextBlockParam & { cache_control?: { type: 'ephemeral' } } = {
@@ -100,7 +100,7 @@ export class ClaudeProvider implements IAIProvider {
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
-    const requestModel = this.capabilities.defaultModel;
+    const requestModel = options.model ?? this.capabilities.defaultModel;
 
     try {
       const systemContent = { type: 'text', text: options.systemPrompt, cache_control: { type: 'ephemeral' } };

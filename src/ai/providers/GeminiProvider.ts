@@ -45,8 +45,9 @@ export class GeminiProvider implements IAIProvider {
     const t0 = Date.now();
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
+      const requestModel = options.model ?? this.capabilities.defaultModel;
       const model = genAI.getGenerativeModel({
-        model: this.capabilities.defaultModel,
+        model: requestModel,
         systemInstruction: options.systemPrompt,
         safetySettings: SAFETY_SETTINGS,
         generationConfig: {
@@ -84,8 +85,9 @@ export class GeminiProvider implements IAIProvider {
     const t0 = Date.now();
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
+      const requestModel = options.model ?? this.capabilities.defaultModel;
       const model = genAI.getGenerativeModel({
-        model: this.capabilities.defaultModel,
+        model: requestModel,
         systemInstruction: options.systemPrompt,
         safetySettings: SAFETY_SETTINGS,
         generationConfig: { maxOutputTokens: options.maxTokens ?? 2048, temperature: options.temperature ?? 0.3 },
