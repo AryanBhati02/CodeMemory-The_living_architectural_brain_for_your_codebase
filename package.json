@@ -65,6 +65,21 @@
         "title": "Refresh Decisions",
         "category": "CodeMemory",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "codememory.editDecision",
+        "title": "Edit Decision",
+        "category": "CodeMemory"
+      },
+      {
+        "command": "codememory.deleteDecision",
+        "title": "Delete Decision",
+        "category": "CodeMemory"
+      },
+      {
+        "command": "codememory.linkDecision",
+        "title": "Link to...",
+        "category": "CodeMemory"
       }
     ],
     "menus": {
@@ -73,6 +88,23 @@
           "command": "codememory.captureDecision",
           "group": "codememory",
           "when": "editorHasSelection"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codememory.editDecision",
+          "when": "view == codememory.decisionsTree && viewItem == codememory.decision",
+          "group": "codememory@1"
+        },
+        {
+          "command": "codememory.deleteDecision",
+          "when": "view == codememory.decisionsTree && viewItem == codememory.decision",
+          "group": "codememory@2"
+        },
+        {
+          "command": "codememory.linkDecision",
+          "when": "view == codememory.decisionsTree && viewItem == codememory.decision",
+          "group": "codememory@3"
         }
       ],
       "view/title": [
@@ -163,7 +195,6 @@
     "@google/generative-ai": "^0.21.0",
     "@xenova/transformers": "^2.17.0",
     "better-sqlite3": "^9.6.0",
-    "openai": "^4.89.0",
-    "strip-comments": "^2.0.1"
+    "openai": "^4.89.0"
   }
 }

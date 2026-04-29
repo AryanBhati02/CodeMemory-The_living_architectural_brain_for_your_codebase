@@ -5,6 +5,9 @@ import {
   searchDecisionsCommand,
   askAICommand,
   navigateToDecisionCommand,
+  editDecisionCommand,
+  deleteDecisionCommand,
+  linkDecisionCommand,
 } from './index';
 import type { DecisionService }    from '../decisions/decisionService';
 import type { AIPipeline }         from '../ai/pipeline/AIPipeline';
@@ -71,6 +74,18 @@ export function registerAllCommands(deps: CommandDeps): void {
     [
       'codememory.navigateToDecision',
       (node: any) => navigateToDecisionCommand(node),
+    ],
+    [
+      'codememory.editDecision',
+      (node: any) => editDecisionCommand(decisionService, node),
+    ],
+    [
+      'codememory.deleteDecision',
+      (node: any) => deleteDecisionCommand(decisionService, node),
+    ],
+    [
+      'codememory.linkDecision',
+      (node: any) => linkDecisionCommand(decisionService, node),
     ],
   ];
 

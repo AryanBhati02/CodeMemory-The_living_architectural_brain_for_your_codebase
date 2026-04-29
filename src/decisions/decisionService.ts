@@ -7,6 +7,7 @@ import type {
   DecisionNode, DecisionEdge, DecisionPayload,
   DecisionFilter, GraphStats, GraphChangeEvent, RelationType,
 } from '../graph/types';
+import { SemanticRanker } from '../search/SemanticRanker';
 
 
 
@@ -45,16 +46,22 @@ export function validatePayload(p: Partial<DecisionPayload>): ValidationError[] 
 export class DecisionService implements vscode.Disposable {
   private readonly _onGraphChange = new vscode.EventEmitter<GraphChangeEvent>();
   readonly onGraphChange = this._onGraphChange.event;
+  private readonly ranker = new SemanticRanker();
 
   constructor(
     private readonly db: CodeMemoryDatabase,
     private readonly embeddingQueue: EmbeddingQueue
-  ) {}
+  ) {
+    this.ranker.updateIndex(this.db.getEmbeddedNodes());
+    this.embeddingQueue.onEmbeddingComplete(() => {
+      this.ranker.updateIndex(this.db.getEmbeddedNodes());
+    });
+  }
 
   
 
   async createDecision(
-    partial: Omit<DecisionPayload, 'status' | 'filePaths' | 'tags'> & { status?: DecisionPayload['status'], filePaths?: string[], tags?: string[] }
+    partial: Omit<DecisionPayload, 'status'> & { status?: DecisionPayload['status'] }
   ): Promise<DecisionNode> {
     const errors = validatePayload(partial);
     if (errors.length) throw new Error(`Invalid decision: ${errors.map(e => e.message).join(', ')}`);
@@ -138,6 +145,30 @@ export class DecisionService implements vscode.Disposable {
     return this.db.searchNodesFts(query, limit);
   }
 
+  async hybridSearch(query: string, limit = 10): Promise<DecisionNode[]> {
+    let semanticIds: string[] = [];
+    try {
+      const queryVec = await this.embeddingQueue.embedText(query);
+      semanticIds = this.ranker.rank(queryVec, 20).map(r => r.id);
+    } catch {
+      
+    }
+
+    const keywordIds = this.db.searchNodesFts(query, 20).map(n => n.id);
+
+    
+    const scores = new Map<string, number>();
+    semanticIds.forEach((id, i) => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
+    keywordIds.forEach((id, i)  => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
+
+    const rankedIds = [...scores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([id]) => id);
+
+    return this.db.getNodesByIds(rankedIds);
+  }
+
   
 
   createEdge(
@@ -174,6 +205,8 @@ export class DecisionService implements vscode.Disposable {
   getEdgesForDecision(nodeId: string): DecisionEdge[] {
     return this.db.getEdgesForNode(nodeId);
   }
+
+  getAllEdges(): DecisionEdge[] { return this.db.getAllEdges(); }
 
   getGraphStats(): GraphStats {
     return this.db.getStats();

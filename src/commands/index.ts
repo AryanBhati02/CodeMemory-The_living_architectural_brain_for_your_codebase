@@ -72,7 +72,7 @@ export async function searchDecisionsCommand(
   });
   if (query === undefined) return;
 
-  const results = decisionService.searchDecisions(query, 20);
+  const results = await decisionService.hybridSearch(query, 20);
 
   if (!results.length) {
     vscode.window.showInformationMessage(`No decisions found for "${query}"`);
@@ -201,4 +201,104 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
   } catch {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
+}
+
+
+
+export async function editDecisionCommand(
+  decisionService: DecisionService,
+  node: any
+): Promise<void> {
+  const title = await vscode.window.showInputBox({
+    title: 'Edit Decision (1/4) — Title',
+    value: node.payload.title,
+    prompt: 'Decision title',
+  });
+  if (title === undefined) return;
+
+  const rationale = await vscode.window.showInputBox({
+    title: 'Edit Decision (2/4) — Rationale',
+    value: node.payload.rationale,
+    prompt: 'Why was this decision made?',
+  });
+  if (rationale === undefined) return;
+
+  const typeItems = [
+    { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
+    { label: '$(shield) Constraint',        description: 'A hard rule that must be followed',  id: 'constraint' },
+    { label: '$(book) Convention',          description: 'A soft style/naming agreement',      id: 'convention' },
+    { label: '$(question) Why',             description: 'Rationale for a non-obvious choice', id: 'why' },
+  ].map(item => ({
+    ...item,
+    description: item.id === node.payload.type ? item.description + ' (current)' : item.description,
+  }));
+
+  const typePick = await vscode.window.showQuickPick(typeItems, {
+    title: 'Edit Decision (3/4) — Type',
+  });
+  if (!typePick) return;
+
+  const statusItems = (['proposed', 'accepted', 'deprecated', 'superseded'] as const).map(s => ({
+    label:       s,
+    description: s === node.payload.status ? '(current)' : '',
+  }));
+
+  const statusPick = await vscode.window.showQuickPick(statusItems, {
+    title: 'Edit Decision (4/4) — Status',
+  });
+  if (!statusPick) return;
+
+  await decisionService.updateDecision(node.id, {
+    title,
+    rationale,
+    type:   (typePick as any).id,
+    status: statusPick.label,
+  });
+  vscode.window.showInformationMessage(`Decision updated: "${title}"`);
+}
+
+
+
+export async function deleteDecisionCommand(
+  decisionService: DecisionService,
+  node: any
+): Promise<void> {
+  const answer = await vscode.window.showWarningMessage(
+    `Delete "${node.payload.title}"? This cannot be undone.`,
+    'Delete', 'Cancel'
+  );
+  if (answer !== 'Delete') return;
+
+  decisionService.deleteDecision(node.id);
+  vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
+}
+
+
+
+export async function linkDecisionCommand(
+  decisionService: DecisionService,
+  node: any
+): Promise<void> {
+  const others = decisionService.getDecisions().filter(d => d.id !== node.id);
+  if (!others.length) {
+    vscode.window.showInformationMessage('No other decisions to link to.');
+    return;
+  }
+
+  const targetPick = await vscode.window.showQuickPick(
+    others.map(d => ({ label: d.payload.title, description: d.payload.type, id: d.id })),
+    { title: 'Link Decision — Select Target', placeHolder: 'Select decision to link to' }
+  );
+  if (!targetPick) return;
+
+  const relPick = await vscode.window.showQuickPick(
+    (['CONFLICTS_WITH', 'DEPENDS_ON', 'SUPERSEDES', 'RELATED_TO', 'APPLIES_TO'] as const).map(r => ({ label: r })),
+    { title: 'Link Decision — Relation Type', placeHolder: 'Select relation type' }
+  );
+  if (!relPick) return;
+
+  decisionService.createEdge(node.id, (targetPick as any).id, relPick.label);
+  vscode.window.showInformationMessage(
+    `Linked "${node.payload.title}" → ${relPick.label} → "${targetPick.label}"`
+  );
 }
