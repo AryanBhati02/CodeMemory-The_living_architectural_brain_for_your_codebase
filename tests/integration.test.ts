@@ -1,7 +1,13 @@
+/**
+ * CodeMemory — Integration Tests
+ *
+ * Tests all cross-phase integrations without VS Code dependencies.
+ * Covers: ProviderManager, CacheEngine, AIPipeline (mocked), DecisionService (mocked DB).
+ */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-
+// decisionService.ts imports vscode — mock it so this test file runs outside VS Code.
 vi.mock('vscode', () => ({
   EventEmitter: class {
     event = (_listener: Function) => ({ dispose: () => {} });
@@ -18,7 +24,7 @@ import { AIProviderError }  from '../src/ai/providers/IAIProvider';
 import { validatePayload }  from '../src/decisions/decisionService';
 import type { DecisionNode } from '../src/graph/types';
 
-
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
 function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): DecisionNode {
   return {
@@ -41,7 +47,7 @@ function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): Decisio
   };
 }
 
-
+// ─── ProviderManager ─────────────────────────────────────────────────────────
 
 describe('ProviderManager', () => {
   beforeEach(() => ProviderManager.resetInstance());
@@ -75,12 +81,12 @@ describe('ProviderManager', () => {
     const pm = ProviderManager.getInstance();
     pm.setActiveProvider('openai');
     pm.unregister('claude');
-    expect(() => pm.unregister('openai')).toThrow(); 
+    expect(() => pm.unregister('openai')).toThrow(); // can't unregister active
   });
 
   it('validates claude key format', () => {
     const pm = ProviderManager.getInstance();
-    expect(pm.validateKey('claude', 'sk-ant-api03-' + 'x'.repeat(30)).valid).toBe(true); 
+    expect(pm.validateKey('claude', 'sk-ant-api03-' + 'x'.repeat(30)).valid).toBe(true); // 43 chars ≥ 40
     expect(pm.validateKey('claude', 'bad-key').valid).toBe(false);
     expect(pm.validateKey('claude', 'sk-ant-short').valid).toBe(false);
   });
@@ -105,7 +111,7 @@ describe('ProviderManager', () => {
   });
 });
 
-
+// ─── CacheEngine ─────────────────────────────────────────────────────────────
 
 describe('CacheEngine', () => {
   it('returns null on empty cache', () => {
@@ -141,8 +147,8 @@ describe('CacheEngine', () => {
   it('tracks hit rate correctly', () => {
     const cache = new CacheEngine(300);
     cache.set('h', 'claude', 'prompt');
-    cache.get('h', 'claude'); 
-    cache.get('h', 'openai'); 
+    cache.get('h', 'claude'); // hit
+    cache.get('h', 'openai'); // miss (provider mismatch)
     const stats = cache.getStats();
     expect(stats.hits).toBe(1);
     expect(stats.misses).toBe(1);
@@ -156,15 +162,15 @@ describe('CacheEngine', () => {
   });
 
   it('returns null after TTL expires', async () => {
-    
+    // TTL of 0.001 seconds = 1 ms — entry expires almost immediately
     const cache = new CacheEngine(0.001);
     cache.set('hash1', 'claude', 'system prompt text');
-    await new Promise(r => setTimeout(r, 20)); 
+    await new Promise(r => setTimeout(r, 20)); // wait well past expiry
     expect(cache.get('hash1', 'claude')).toBeNull();
   });
 });
 
-
+// ─── computeGraphHash ─────────────────────────────────────────────────────────
 
 describe('computeGraphHash', () => {
   it('same decisions produce same hash', () => {
@@ -183,7 +189,7 @@ describe('computeGraphHash', () => {
   });
 });
 
-
+// ─── PromptBuilder ────────────────────────────────────────────────────────────
 
 describe('PromptBuilder', () => {
   it('builds prompt containing decision title', () => {
@@ -220,7 +226,7 @@ describe('PromptBuilder', () => {
       makeDecision({ title: `Decision ${i}` })
     );
     const prompt = PromptBuilder.build({ decisions, maxDecisions: 5 });
-    
+    // Only 5 should be injected — count occurrences of "Decision"
     const matches = (prompt.match(/Decision \d+/g) ?? []).length;
     expect(matches).toBe(5);
   });
@@ -229,11 +235,11 @@ describe('PromptBuilder', () => {
     const d = makeDecision();
     const p1 = PromptBuilder.build({ decisions: [d] });
     const p2 = PromptBuilder.build({ decisions: [d] });
-    expect(p1).toBe(p2); 
+    expect(p1).toBe(p2); // Required for cache hit rate
   });
 });
 
-
+// ─── AIProviderError ─────────────────────────────────────────────────────────
 
 describe('AIProviderError', () => {
   it('constructs correctly', () => {
@@ -251,7 +257,7 @@ describe('AIProviderError', () => {
   });
 });
 
-
+// ─── validatePayload (DecisionService) ───────────────────────────────────────
 
 describe('validatePayload', () => {
   it('passes valid payload', () => {

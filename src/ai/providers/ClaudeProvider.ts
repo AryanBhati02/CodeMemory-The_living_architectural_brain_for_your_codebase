@@ -137,7 +137,7 @@ export class ClaudeProvider implements IAIProvider {
       }
       onChunk({ delta: '', done: true });
 
-      const msg = await stream.getFinalMessage();
+      const msg = await stream.finalMessage();
       const usage = msg.usage as any;
       return {
         content: fullContent,

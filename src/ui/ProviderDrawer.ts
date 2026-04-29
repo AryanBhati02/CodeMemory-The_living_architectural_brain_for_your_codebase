@@ -67,7 +67,6 @@ export class ProviderDrawer implements vscode.Disposable {
       case 'remove-key':
         await this.secrets.deleteKey(msg.providerId);
         this._post({ type: 'key-removed', providerId: msg.providerId });
-        await this._sendInitialState();
         break;
 
       case 'switch-provider':
@@ -93,26 +92,22 @@ export class ProviderDrawer implements vscode.Disposable {
   }
 
   private async _sendInitialState(): Promise<void> {
-    const providers = this.manager.listProviders().map((p) => ({
+    const providers = await Promise.all(this.manager.listProviders().map(async (p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
       accentColor: p.accentColor,
       apiKeyUrl: p.apiKeyUrl,
-      capabilities: p.capabilities,
+      hasKey: await this.secrets.hasKey(p.id),
       selectedModel: this.secrets.getSelectedModel(p.id) ?? p.capabilities.defaultModel,
-    }));
-
-    const configuredIds: string[] = [];
-    for (const p of this.manager.listProviders()) {
-      if (await this.secrets.hasKey(p.id)) configuredIds.push(p.id);
-    }
+      availableModels: p.capabilities.availableModels,
+      requiresApiKey: !p.validateKey('').valid,
+    })));
 
     this._post({
       type: 'init',
       providers,
       activeProviderId: this.manager.getActiveProviderId(),
-      configuredIds,
     });
   }
 

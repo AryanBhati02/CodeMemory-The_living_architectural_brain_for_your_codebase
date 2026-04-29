@@ -10,15 +10,28 @@ async function init() {
 }
 
 parentPort?.on('message', async (msg: any) => {
-  if (msg.type !== 'embed') return;
-  const { nodeId, text } = msg;
-  try {
-    if (!pipeline) await init();
-    const output = await pipeline(text, { pooling: 'mean', normalize: true });
-    const embedding = Array.from(output.data as Float32Array);
-    parentPort?.postMessage({ type: 'embedding', nodeId, embedding });
-  } catch (err: any) {
-    parentPort?.postMessage({ type: 'embedding', nodeId, error: err.message });
+  if (msg.type === 'embed') {
+    const { nodeId, text } = msg;
+    try {
+      if (!pipeline) await init();
+      const output = await pipeline(text, { pooling: 'mean', normalize: true });
+      const embedding = Array.from(output.data as Float32Array);
+      parentPort?.postMessage({ type: 'embedding', nodeId, embedding });
+    } catch (err: any) {
+      parentPort?.postMessage({ type: 'embedding', nodeId, error: err.message });
+    }
+  }
+
+  if (msg.type === 'embed-text') {
+    const { requestId, text } = msg;
+    try {
+      if (!pipeline) await init();
+      const output = await pipeline(text, { pooling: 'mean', normalize: true });
+      const embedding = Array.from(output.data as Float32Array);
+      parentPort?.postMessage({ type: 'text-embedding', requestId, embedding });
+    } catch (err: any) {
+      parentPort?.postMessage({ type: 'text-embedding', requestId, error: err.message });
+    }
   }
 });
 

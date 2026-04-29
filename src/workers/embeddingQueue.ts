@@ -25,6 +25,24 @@ export class EmbeddingQueue implements vscode.Disposable {
     this._scheduleBackfill();
   }
 
+  embedText(text: string): Promise<Float32Array> {
+    if (!this.worker || !this.workerReady) {
+      return Promise.reject(new Error('Embedding worker not ready'));
+    }
+    const requestId = `text-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return new Promise((resolve, reject) => {
+      
+      this.pendingJobs.set(requestId, {
+        resolve: () => {},  
+        reject,             
+      });
+      
+      (this as any)._textJobs = (this as any)._textJobs ?? new Map();
+      (this as any)._textJobs.set(requestId, { resolve, reject });
+      this.worker!.postMessage({ type: 'embed-text', requestId, text });
+    });
+  }
+
   enqueue(nodeId: string, text: string): Promise<void> {
     if (!this.worker || !this.workerReady) {
       return Promise.resolve(); 
@@ -64,6 +82,19 @@ export class EmbeddingQueue implements vscode.Disposable {
     if (msg.type === 'ready') {
       this.workerReady = true;
       onReady?.();
+      return;
+    }
+    if (msg.type === 'text-embedding') {
+      const { requestId, embedding, error } = msg;
+      const textJobs: Map<string, any> = (this as any)._textJobs ?? new Map();
+      const job = textJobs.get(requestId);
+      textJobs.delete(requestId);
+      this.pendingJobs.delete(requestId);
+      if (error || !embedding) {
+        job?.reject(new Error(error ?? 'No embedding returned'));
+      } else {
+        job?.resolve(new Float32Array(embedding));
+      }
       return;
     }
     if (msg.type === 'embedding') {

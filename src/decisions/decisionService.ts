@@ -54,7 +54,7 @@ export class DecisionService implements vscode.Disposable {
   
 
   async createDecision(
-    partial: Omit<DecisionPayload, 'status'> & { status?: DecisionPayload['status'] }
+    partial: Omit<DecisionPayload, 'status' | 'filePaths' | 'tags'> & { status?: DecisionPayload['status'], filePaths?: string[], tags?: string[] }
   ): Promise<DecisionNode> {
     const errors = validatePayload(partial);
     if (errors.length) throw new Error(`Invalid decision: ${errors.map(e => e.message).join(', ')}`);

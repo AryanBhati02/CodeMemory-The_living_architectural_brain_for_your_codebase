@@ -3,607 +3,308 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src data:;" />
-<title>CodeMemory · AI Provider</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';" />
+<title>CodeMemory · AI Providers</title>
 <style>
-/* ── RESET ── */
+/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── FONTS (loaded from VS Code host) ── */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
-
-/* ── DESIGN TOKENS ── */
+/* ── Tokens ── */
 :root {
   --bg:          #050508;
-  --surface:     rgba(10, 10, 18, 0.82);
-  --surface-hi:  rgba(16, 16, 30, 0.9);
+  --surface:     rgba(10, 10, 20, 0.88);
+  --surface-hi:  rgba(16, 16, 30, 0.95);
   --border:      rgba(255,255,255,0.06);
-  --border-hi:   rgba(255,255,255,0.12);
+  --border-hi:   rgba(255,255,255,0.11);
   --text:        #dde1f0;
   --text-dim:    #7a7fa8;
   --text-dimmer: #3a3d5a;
-
-  /* Neon accents */
-  --cyan:        #4fc3f7;
-  --purple:      #7c6ee0;
-  --gold:        #f6c445;
-  --violet:      #8b5cf6;
   --green:       #34d399;
   --red:         #f87171;
-
-  --radius-card: 18px;
-  --radius-input: 12px;
+  --cyan:        #4fc3f7;
+  --purple:      #7c6ee0;
+  --r-card:      15px;
+  --r-input:     10px;
+  --r-btn:       9px;
 }
 
-/* ── BASE ── */
-html { height: 100%; }
-
-body {
+html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Syne', -apple-system, sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
   min-height: 100vh;
-  overflow-x: hidden;
-  position: relative;
-  -webkit-backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── FRACTAL NOISE OVERLAY ── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-  animation: noise-drift 8s linear infinite;
-}
-
-@keyframes noise-drift {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(-1%, 1%); }
-  50%  { transform: translate(1%, -1%); }
-  75%  { transform: translate(-1%, -1%); }
-  100% { transform: translate(0, 0); }
-}
-
-/* ── AMBIENT ORBS ── */
+/* ── Ambient orbs ── */
 .orb {
   position: fixed;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(90px);
   pointer-events: none;
   z-index: 0;
-  will-change: transform;
 }
 .orb-1 {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, rgba(124,110,224,0.08) 0%, transparent 70%);
-  top: -20%; left: -15%;
-  animation: float-1 18s ease-in-out infinite;
+  width: 460px; height: 460px;
+  background: radial-gradient(circle, rgba(124,110,224,0.07) 0%, transparent 70%);
+  top: -15%; left: -12%;
+  animation: float1 20s ease-in-out infinite;
 }
 .orb-2 {
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(79,195,247,0.06) 0%, transparent 70%);
-  bottom: -10%; right: -10%;
-  animation: float-2 22s ease-in-out infinite;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(79,195,247,0.05) 0%, transparent 70%);
+  bottom: -8%; right: -8%;
+  animation: float2 24s ease-in-out infinite;
+}
+@keyframes float1 {
+  0%,100% { transform: translate(0,0); }
+  40%     { transform: translate(3%,4%); }
+  70%     { transform: translate(-2%,2%); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0); }
+  35%     { transform: translate(-4%,-3%); }
+  65%     { transform: translate(2%,-1%); }
 }
 
-@keyframes float-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(4%, 3%) scale(1.05); }
-  66%       { transform: translate(-3%, 5%) scale(0.97); }
-}
-@keyframes float-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  40%       { transform: translate(-5%, -4%) scale(1.08); }
-  70%       { transform: translate(3%, -2%) scale(0.95); }
-}
-
-/* ── LAYOUT ── */
+/* ── Shell ── */
 .shell {
   position: relative;
   z-index: 1;
   max-width: 520px;
   margin: 0 auto;
-  padding: 28px 20px 40px;
+  padding: 24px 16px 48px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 
-/* ── HEADER ── */
-.header {
+/* ── Header ── */
+.hdr {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 18px;
+  gap: 11px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
 
-.logo-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.hdr-mark {
+  width: 34px; height: 34px;
+  border-radius: 9px;
   background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 20px rgba(124,110,224,0.3);
+  box-shadow: 0 0 18px rgba(124,110,224,0.28);
+  font-size: 15px;
 }
 
-.logo-mark svg { width: 18px; height: 18px; color: #fff; }
-
-.header-text {}
-.header-title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--text);
-  line-height: 1;
-}
-.header-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dimmer);
-  margin-top: 3px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.hdr-copy {}
+.hdr-title { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+.hdr-sub {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 10px; color: var(--text-dimmer);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;
 }
 
-/* ── ACTIVE PROVIDER BADGE ── */
-.active-badge {
+/* Active provider pill */
+.active-pill {
   margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
   background: var(--surface);
   border: 1px solid var(--border-hi);
-  padding: 5px 10px;
   border-radius: 100px;
+  padding: 5px 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dim);
   white-space: nowrap;
 }
-
 .active-dot {
-  width: 5px;
-  height: 5px;
+  width: 5px; height: 5px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  flex-shrink: 0;
+  box-shadow: 0 0 5px var(--green);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-.active-dot.inactive {
-  background: var(--text-dimmer);
-  box-shadow: none;
-}
-
-/* ── SECTION LABEL ── */
+/* ── Section label ── */
 .section-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em;
   color: var(--text-dimmer);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; gap: 10px;
 }
 .section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
+  content: ''; flex: 1; height: 1px; background: var(--border);
 }
 
-/* ── PROVIDER GRID ── */
-.provider-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ── PROVIDER CARD ── */
-.provider-card {
+/* ── Cards ── */
+.card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              box-shadow 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
-  -webkit-backface-visibility: hidden;
-}
-
-.provider-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.provider-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-}
-
-.provider-card:hover::before { opacity: 1; }
-
-.provider-card:active {
-  transform: scale(0.98) translateY(0);
-  transition-duration: 0.1s;
-}
-
-.provider-card.selected {
-  border-color: var(--accent-color, var(--purple));
-  box-shadow: 0 0 0 1px var(--accent-color, var(--purple)),
-              0 8px 32px rgba(0,0,0,0.25),
-              0 0 30px rgba(var(--accent-rgb, 124,110,224), 0.08);
-}
-
-/* Provider icon container */
-.provider-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid var(--border-hi);
-  background: var(--surface-hi);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  border-radius: var(--r-card);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 14px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.provider-card.selected .provider-icon-wrap {
-  border-color: var(--accent-color, var(--purple));
-  box-shadow: 0 0 12px rgba(var(--accent-rgb, 124,110,224), 0.25);
+.card.is-active {
+  border-color: var(--accent, var(--purple));
+  box-shadow: 0 0 0 1px var(--accent, var(--purple)),
+              0 6px 28px rgba(0,0,0,0.22),
+              0 0 36px rgba(124,110,224,0.07);
 }
 
-.provider-icon-wrap svg {
-  width: 20px;
-  height: 20px;
+/* Card top row */
+.card-hdr { display: flex; align-items: center; gap: 10px; }
+
+.card-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%; flex-shrink: 0;
+  transition: box-shadow 0.25s ease;
 }
 
-/* Provider text */
-.provider-info { flex: 1; min-width: 0; }
-.provider-name {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1;
-  margin-bottom: 4px;
-  transition: color 0.25s ease;
-}
+.card-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
 
-.provider-desc {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Config state chip */
-.config-chip {
-  flex-shrink: 0;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
-  border-radius: 100px;
-  border: 1px solid;
-  transition: all 0.25s ease;
-}
-
-.config-chip.configured {
-  color: var(--green);
-  border-color: rgba(52, 211, 153, 0.3);
-  background: rgba(52, 211, 153, 0.06);
-}
-
-.config-chip.not-configured {
-  color: var(--text-dimmer);
-  border-color: var(--border);
-  background: transparent;
-}
-
-/* ── KEY INPUT PANEL ── */
-.key-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.key-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-.key-panel-provider-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.key-panel-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.key-panel-hint {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dimmer);
+.card-badge {
   margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 2px 8px; border-radius: 100px; border: 1px solid;
 }
 
-.key-panel-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-
-/* ── INPUT FIELD ── */
-.input-wrap {
-  position: relative;
+.card-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dim); line-height: 1.5;
 }
+
+/* ── Key section ── */
+.key-section { display: flex; flex-direction: column; gap: 8px; }
+
+.input-wrap { position: relative; }
 
 .key-input {
   width: 100%;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.38);
   border: 1px solid var(--border-hi);
-  border-radius: var(--radius-input);
+  border-radius: var(--r-input);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  padding: 13px 44px 13px 16px;
+  font-size: 12px; letter-spacing: 0.04em;
+  padding: 11px 40px 11px 14px;
   outline: none;
-  transition: border-color 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              box-shadow 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              background 0.25s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   caret-color: var(--cyan);
 }
-
-.key-input::placeholder {
-  color: var(--text-dimmer);
-  letter-spacing: 0.04em;
-}
-
+.key-input::placeholder { color: var(--text-dimmer); }
 .key-input:focus {
-  border-color: var(--focus-color, var(--cyan));
-  box-shadow: 0 0 0 3px rgba(79,195,247,0.08),
-              0 0 20px rgba(79,195,247,0.06);
-  background: rgba(0,0,0,0.5);
+  border-color: var(--accent, var(--cyan));
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.07);
 }
+.key-input.is-valid   { border-color: var(--green); }
+.key-input.is-invalid { border-color: var(--red); }
 
-/* Toggle visibility button */
 .eye-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-dimmer);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 6px;
-  transition: color 0.2s ease, background 0.2s ease;
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dimmer); padding: 4px; border-radius: 5px; line-height: 0;
+  transition: color 0.15s ease, background 0.15s ease;
 }
-.eye-btn:hover {
-  color: var(--text-dim);
-  background: rgba(255,255,255,0.06);
-}
+.eye-btn:hover { color: var(--text-dim); background: rgba(255,255,255,0.05); }
 
-/* ── ACTION ROW ── */
-.action-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* ── APPLY BUTTON ── */
-.apply-btn {
-  flex: 1;
-  background: linear-gradient(135deg, var(--btn-from, #7c6ee0) 0%, var(--btn-to, #4fc3f7) 100%);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-family: 'Syne', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  padding: 12px 20px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: filter 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-              box-shadow 0.25s ease;
-  will-change: transform;
-}
-
-.apply-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.1);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.apply-btn:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 4px 20px rgba(124,110,224,0.35);
-}
-
-.apply-btn:hover::before { opacity: 1; }
-
-.apply-btn:active {
-  transform: scale(0.97);
-  filter: brightness(0.95);
-  transition-duration: 0.08s;
-}
-
-.apply-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  filter: none;
-  transform: none;
-}
-
-.apply-btn .btn-spinner {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── REMOVE BUTTON ── */
-.remove-btn {
-  background: rgba(248,113,113,0.08);
-  border: 1px solid rgba(248,113,113,0.2);
-  border-radius: 10px;
-  color: var(--red);
-  font-family: 'Syne', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
-  display: none;
-}
-
-.remove-btn:hover {
-  background: rgba(248,113,113,0.14);
-  border-color: rgba(248,113,113,0.4);
-}
-
-.remove-btn:active { transform: scale(0.97); }
-.remove-btn.visible { display: flex; align-items: center; gap: 6px; }
-
-/* ── STATUS MESSAGE ── */
-.status-msg {
+.key-status {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid;
-  animation: slide-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  display: none;
+  font-size: 11px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid; display: none;
+  animation: slide-in 0.25s cubic-bezier(0.22,0.61,0.36,1) both;
 }
-
-.status-msg.success {
-  color: var(--green);
-  border-color: rgba(52,211,153,0.25);
-  background: rgba(52,211,153,0.06);
-  display: flex;
+.key-status.is-ok {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--green); border-color: rgba(52,211,153,0.22);
+  background: rgba(52,211,153,0.05);
 }
-
-.status-msg.error {
-  color: var(--red);
-  border-color: rgba(248,113,113,0.25);
-  background: rgba(248,113,113,0.06);
-  display: flex;
+.key-status.is-err {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--red); border-color: rgba(248,113,113,0.22);
+  background: rgba(248,113,113,0.05);
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(-6px); }
+  from { opacity: 0; transform: translateY(-5px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── MODEL SELECTOR ── */
-.model-section { display: flex; flex-direction: column; gap: 8px; }
+/* ── Model selector ── */
+.model-wrap { display: flex; flex-direction: column; gap: 6px; }
 
 .model-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--text-dimmer);
 }
 
 .model-select {
   width: 100%;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.38);
   border: 1px solid var(--border-hi);
-  border-radius: 10px;
+  border-radius: var(--r-input);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  padding: 10px 14px;
-  outline: none;
-  cursor: pointer;
-  appearance: none;
+  padding: 9px 32px 9px 13px;
+  outline: none; cursor: pointer; appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%237a7fa8' d='M8 10.5L3 5.5h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right 10px center;
   background-size: 14px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: border-color 0.2s ease;
 }
+.model-select:focus { border-color: var(--accent, var(--cyan)); }
+.model-select option { background: #0d0d1a; color: var(--text); }
 
-.model-select:focus {
-  border-color: var(--focus-color, var(--cyan));
-  box-shadow: 0 0 0 3px rgba(79,195,247,0.08);
+/* ── Buttons ── */
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn {
+  border: none; border-radius: var(--r-btn);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 12px; font-weight: 600;
+  padding: 9px 15px;
+  cursor: pointer; white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+  position: relative; overflow: hidden;
 }
+.btn:hover:not(:disabled)  { filter: brightness(1.1); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.model-select option {
-  background: #0f0f1a;
-  color: var(--text);
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent, var(--purple)) 0%, var(--accent-alt, var(--cyan)) 100%);
+  color: #fff;
 }
-
-/* ── INFO LINK ── */
-.info-link {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dimmer);
-  text-align: center;
-  padding-top: 4px;
+.btn-primary .spinner {
+  display: inline-block; width: 10px; height: 10px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.65s linear infinite;
+  vertical-align: middle; margin-right: 6px;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.info-link a {
-  color: var(--focus-color, var(--cyan));
-  text-decoration: none;
-  opacity: 0.8;
-  transition: opacity 0.2s;
+.btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-hi);
+  color: var(--text-dim);
 }
-.info-link a:hover { opacity: 1; }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--text); }
 
+.btn-danger {
+  background: rgba(248,113,113,0.07);
+  border: 1px solid rgba(248,113,113,0.22);
+  color: var(--red);
+}
+.btn-danger:hover:not(:disabled) { background: rgba(248,113,113,0.13); }
 </style>
 </head>
 <body>
@@ -613,382 +314,351 @@ body::before {
 
 <div class="shell">
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="logo-mark">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-mark">⚡</div>
+    <div class="hdr-copy">
+      <div class="hdr-title">CodeMemory</div>
+      <div class="hdr-sub">AI Provider Configuration</div>
     </div>
-    <div class="header-text">
-      <div class="header-title">CodeMemory</div>
-      <div class="header-sub">AI Provider Configuration</div>
-    </div>
-    <div class="active-badge" id="activeBadge">
-      <span class="active-dot inactive" id="activeDot"></span>
+    <div class="active-pill">
+      <span class="active-dot" id="activeDot"></span>
       <span id="activeLabel">No provider</span>
     </div>
   </header>
 
-  <!-- PROVIDER SELECTION -->
   <div class="section-label">Select Provider</div>
 
-  <div class="provider-grid" id="providerGrid">
-    <!-- Populated by JS -->
-  </div>
+  <!-- Provider cards injected here -->
+  <div id="providerList"></div>
 
-  <!-- KEY CONFIGURATION PANEL -->
-  <div class="section-label" id="keySection" style="display:none">Configure Key</div>
-
-  <div class="key-panel" id="keyPanel" style="display:none">
-    <div class="key-panel-header">
-      <div class="key-panel-provider-dot" id="panelDot"></div>
-      <div class="key-panel-title" id="panelTitle">API Key</div>
-      <div class="key-panel-hint" id="panelHint">sk-ant-api03-...</div>
-    </div>
-    <div class="key-panel-body">
-
-      <!-- Status message -->
-      <div class="status-msg" id="statusMsg" role="alert">
-        <span id="statusIcon">✓</span>
-        <span id="statusText"></span>
-      </div>
-
-      <!-- API Key Input -->
-      <div class="input-wrap">
-        <input
-          class="key-input"
-          id="keyInput"
-          type="password"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          placeholder="Paste your API key here"
-        />
-        <button class="eye-btn" id="eyeBtn" title="Toggle visibility" aria-label="Toggle API key visibility">
-          <svg id="eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Model Selector -->
-      <div class="model-section" id="modelSection">
-        <div class="model-label">Model</div>
-        <select class="model-select" id="modelSelect"></select>
-      </div>
-
-      <!-- Actions -->
-      <div class="action-row">
-        <button class="remove-btn" id="removeBtn">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-          </svg>
-          Remove
-        </button>
-        <button class="apply-btn" id="applyBtn">Apply Key</button>
-      </div>
-
-      <!-- Info link -->
-      <div class="info-link" id="infoLink">
-        Get your key at <a href="#" id="keyLink">provider dashboard</a>
-      </div>
-
-    </div>
-  </div>
-
-</div><!-- /shell -->
+</div>
 
 <script>
-  // ── VS Code API Bridge ──────────────────────────────────────────────────────
-  const vscode = acquireVsCodeApi();
+'use strict';
 
-  // ── State ───────────────────────────────────────────────────────────────────
-  let state = {
-    providers: [],       // ProviderMetadata[]
-    activeProviderId: null,
-    configuredIds: [],
-    selectedModels: {},  // { [providerId]: string }
-    selectedId: null,    // currently open in the key panel
-    keyVisible: false,
-    validating: false,
-  };
+const vscode = acquireVsCodeApi();
 
-  // ── DOM Refs ────────────────────────────────────────────────────────────────
-  const $ = (id) => document.getElementById(id);
-  const grid      = $('providerGrid');
-  const keyPanel  = $('keyPanel');
-  const keySection = $('keySection');
-  const keyInput  = $('keyInput');
-  const eyeBtn    = $('eyeBtn');
-  const eyeIcon   = $('eyeIcon');
-  const applyBtn  = $('applyBtn');
-  const removeBtn = $('removeBtn');
-  const statusMsg = $('statusMsg');
-  const modelSel  = $('modelSelect');
-  const activeDot = $('activeDot');
-  const activeLabel = $('activeLabel');
-  const panelTitle  = $('panelTitle');
-  const panelHint   = $('panelHint');
-  const panelDot    = $('panelDot');
-  const infoLink    = $('infoLink');
-  const keyLink     = $('keyLink');
+// ── State ───────────────────────────��───────────────────────────────────────
+const state = {
+  providers: [],
+  activeProviderId: null,
+};
 
-  // ── Receive messages from extension ─────────────────────────────────────────
-  window.addEventListener('message', (event) => {
-    const msg = event.data;
-    switch (msg.type) {
-      case 'init':
-        state.providers      = msg.providers;
-        state.activeProviderId = msg.activeProviderId;
-        state.configuredIds  = msg.configuredIds;
-        for (const p of state.providers) {
-          state.selectedModels[p.id] = p.selectedModel;
-        }
-        renderAll();
-        // Auto-expand active or first provider
-        const autoOpen = state.activeProviderId ?? (state.providers[0]?.id);
-        if (autoOpen) openProvider(autoOpen);
-        break;
+// ── Safety escaping for injecting into innerHTML ─────────────────────────────
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-      case 'validation-result':
-        handleValidationResult(msg.result, msg.providerId);
-        break;
+// ── Message handling ─────────────────────────────��───────────────────────────
+window.addEventListener('message', (event) => {
+  const msg = event.data;
 
-      case 'key-removed':
-        state.configuredIds = state.configuredIds.filter(id => id !== msg.providerId);
-        renderProviderCards();
-        showStatus('success', 'Key removed.');
-        removeBtn.classList.remove('visible');
-        keyInput.value = '';
-        break;
+  switch (msg.type) {
 
-      case 'model-selected':
-        state.selectedModels[msg.providerId] = msg.model;
-        break;
+    case 'init':
+      state.providers = msg.providers ?? [];
+      state.activeProviderId = msg.activeProviderId ?? null;
+      renderAll();
+      break;
 
-      case 'provider-changed':
-        state.activeProviderId = msg.providerId;
-        renderProviderCards();
-        updateActiveBadge();
-        break;
+    case 'validation-result': {
+      const input  = document.getElementById(`key-input-${msg.providerId}`);
+      const status = document.getElementById(`key-status-${msg.providerId}`);
+      const apply  = document.getElementById(`btn-apply-${msg.providerId}`);
+      if (apply) { apply.disabled = false; apply.innerHTML = 'Apply Key'; }
+      if (!input || !status) break;
+
+      if (msg.result.valid) {
+        input.className = 'key-input is-valid';
+        setStatus(status, 'ok', '✓ Key saved');
+        input.value = '';
+        const p = state.providers.find(x => x.id === msg.providerId);
+        if (p) p.hasKey = true;
+        const removeBtn = document.getElementById(`btn-remove-${msg.providerId}`);
+        if (removeBtn) removeBtn.style.display = '';
+      } else {
+        input.className = 'key-input is-invalid';
+        setStatus(status, 'err', '✗ ' + (msg.result.reason ?? 'Invalid key'));
+      }
+      break;
     }
+
+    case 'key-removed': {
+      const p = state.providers.find(x => x.id === msg.providerId);
+      if (p) p.hasKey = false;
+      const input     = document.getElementById(`key-input-${msg.providerId}`);
+      const status    = document.getElementById(`key-status-${msg.providerId}`);
+      const removeBtn = document.getElementById(`btn-remove-${msg.providerId}`);
+      if (input)     { input.className = 'key-input'; input.value = ''; }
+      if (status)    setStatus(status, 'ok', '✓ Key removed');
+      if (removeBtn) removeBtn.style.display = 'none';
+      break;
+    }
+
+    case 'provider-switched':
+      state.activeProviderId = msg.providerId;
+      document.querySelectorAll('.card').forEach(card => {
+        const isNowActive = card.dataset.providerId === msg.providerId;
+        card.classList.toggle('is-active', isNowActive);
+        const badge  = card.querySelector('.card-badge');
+        const useBtn = card.querySelector('.btn-use');
+        if (badge) badge.style.display = isNowActive ? '' : 'none';
+        if (useBtn) {
+          useBtn.disabled = isNowActive;
+          useBtn.textContent = isNowActive ? '✓ Active' : 'Use This Provider';
+        }
+        const dot = card.querySelector('.card-dot');
+        if (dot) dot.style.boxShadow = isNowActive
+          ? `0 0 8px ${card.style.getPropertyValue('--accent')}90`
+          : 'none';
+      });
+      updateActivePill();
+      break;
+
+    case 'model-selected': {
+      const sel = document.getElementById(`model-select-${msg.providerId}`);
+      if (sel) sel.value = msg.model;
+      const p = state.providers.find(x => x.id === msg.providerId);
+      if (p) p.selectedModel = msg.model;
+      break;
+    }
+  }
+});
+
+// ── Render all cards ────────────────────────────��────────────────────────────
+function renderAll() {
+  const list = document.getElementById('providerList');
+  list.innerHTML = '';
+  for (const p of state.providers) {
+    list.appendChild(buildCard(p));
+  }
+  updateActivePill();
+}
+
+// ── Build one provider card ────────────────────────���─────────────────────────
+function buildCard(p) {
+  const isActive   = p.id === state.activeProviderId;
+  const needsKey   = p.requiresApiKey !== false;
+  const accentAlt  = deriveAccentAlt(p.accentColor);
+
+  const card = document.createElement('div');
+  card.className = 'card' + (isActive ? ' is-active' : '');
+  card.dataset.providerId = p.id;
+  card.style.setProperty('--accent',     p.accentColor);
+  card.style.setProperty('--accent-alt', accentAlt);
+
+  // ── 1. Card header ────────────��─────────────────────────────────��─────────
+  const hdr = document.createElement('div');
+  hdr.className = 'card-hdr';
+
+  const dot = document.createElement('span');
+  dot.className = 'card-dot';
+  dot.style.background  = p.accentColor;
+  dot.style.boxShadow   = isActive ? `0 0 8px ${p.accentColor}90` : 'none';
+
+  const name = document.createElement('span');
+  name.className = 'card-name';
+  name.textContent = p.name;
+
+  const badge = document.createElement('span');
+  badge.className = 'card-badge';
+  badge.textContent = 'Active';
+  badge.style.color       = p.accentColor;
+  badge.style.borderColor = p.accentColor;
+  badge.style.display     = isActive ? '' : 'none';
+
+  hdr.appendChild(dot);
+  hdr.appendChild(name);
+  hdr.appendChild(badge);
+
+  // ── 2. Description ───────────────────────���────────────────────────────────
+  const desc = document.createElement('div');
+  desc.className = 'card-desc';
+  desc.textContent = p.description;
+
+  // ── 3. Key section (hidden when no key required) ─────────────────────────���
+  let keySection = null;
+  if (needsKey) {
+    keySection = document.createElement('div');
+    keySection.className = 'key-section';
+
+    // Input + eye toggle
+    const inputWrap = document.createElement('div');
+    inputWrap.className = 'input-wrap';
+
+    const input = document.createElement('input');
+    input.type        = 'password';
+    input.className   = 'key-input';
+    input.id          = `key-input-${p.id}`;
+    input.placeholder = 'Paste your API key here';
+    input.autocomplete = 'off';
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById(`btn-apply-${p.id}`)?.click();
+    });
+
+    const eyeBtn = document.createElement('button');
+    eyeBtn.className = 'eye-btn';
+    eyeBtn.title     = 'Toggle visibility';
+    eyeBtn.innerHTML = svgEyeOpen();
+    eyeBtn.addEventListener('click', () => {
+      const shown = input.type === 'text';
+      input.type   = shown ? 'password' : 'text';
+      eyeBtn.innerHTML = shown ? svgEyeOpen() : svgEyeClosed();
+    });
+
+    inputWrap.appendChild(input);
+    inputWrap.appendChild(eyeBtn);
+
+    // Status line
+    const status = document.createElement('div');
+    status.className = 'key-status';
+    status.id        = `key-status-${p.id}`;
+
+    keySection.appendChild(inputWrap);
+    keySection.appendChild(status);
+  }
+
+  // ── 4. Model selector ─────────────────────────────────────────────────────
+  const modelWrap = document.createElement('div');
+  modelWrap.className = 'model-wrap';
+
+  const modelLabel = document.createElement('div');
+  modelLabel.className = 'model-label';
+  modelLabel.textContent = 'Model';
+
+  const modelSel = document.createElement('select');
+  modelSel.className = 'model-select';
+  modelSel.id        = `model-select-${p.id}`;
+  for (const m of (p.availableModels ?? [])) {
+    const opt = document.createElement('option');
+    opt.value    = m;
+    opt.textContent = m;
+    if (m === p.selectedModel) opt.selected = true;
+    modelSel.appendChild(opt);
+  }
+  modelSel.addEventListener('change', () => {
+    vscode.postMessage({ type: 'select-model', providerId: p.id, model: modelSel.value });
   });
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-  function renderAll() {
-    renderProviderCards();
-    updateActiveBadge();
+  modelWrap.appendChild(modelLabel);
+  modelWrap.appendChild(modelSel);
+
+  // ── 5. Button row ──────────────────────────────────────────────��──────────
+  const btnRow = document.createElement('div');
+  btnRow.className = 'btn-row';
+
+  if (needsKey) {
+    // Apply Key
+    const applyBtn = document.createElement('button');
+    applyBtn.className   = 'btn btn-primary';
+    applyBtn.id          = `btn-apply-${p.id}`;
+    applyBtn.textContent = 'Apply Key';
+    applyBtn.addEventListener('click', () => {
+      const input  = document.getElementById(`key-input-${p.id}`);
+      const status = document.getElementById(`key-status-${p.id}`);
+      const key    = input?.value.trim() ?? '';
+      if (!key) {
+        if (status) setStatus(status, 'err', '✗ Enter an API key first');
+        return;
+      }
+      applyBtn.disabled  = true;
+      applyBtn.innerHTML = '<span class="spinner"></span>Saving…';
+      vscode.postMessage({ type: 'apply-key', providerId: p.id, apiKey: key });
+    });
+
+    // Remove Key
+    const removeBtn = document.createElement('button');
+    removeBtn.className   = 'btn btn-danger';
+    removeBtn.id          = `btn-remove-${p.id}`;
+    removeBtn.textContent = 'Remove Key';
+    removeBtn.style.display = p.hasKey ? '' : 'none';
+    removeBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'remove-key', providerId: p.id });
+    });
+
+    btnRow.appendChild(applyBtn);
+    btnRow.appendChild(removeBtn);
   }
 
-  function renderProviderCards() {
-    grid.innerHTML = '';
-    for (const p of state.providers) {
-      const configured = state.configuredIds.includes(p.id);
-      const isActive   = state.activeProviderId === p.id;
-      const isSelected = state.selectedId === p.id;
-
-      const card = document.createElement('div');
-      card.className = 'provider-card' + (isSelected ? ' selected' : '');
-      card.style.setProperty('--accent-color', p.accentColor);
-      card.dataset.providerId = p.id;
-
-      // Top shimmer line using accent
-      card.style.setProperty('--shimmer', p.accentColor);
-      const beforeStyle = document.createElement('style');
-      beforeStyle.textContent = `
-        [data-provider-id="${p.id}"]::before {
-          background: linear-gradient(90deg, transparent, ${p.accentColor}60, transparent);
-        }
-      `;
-      document.head.appendChild(beforeStyle);
-
-      card.innerHTML = `
-        <div class="provider-icon-wrap" style="color: ${p.accentColor}">
-          ${p.iconSvg}
-        </div>
-        <div class="provider-info">
-          <div class="provider-name" style="${isSelected ? `color: ${p.accentColor}` : ''}">${p.displayName}</div>
-          <div class="provider-desc">${p.description}</div>
-        </div>
-        <span class="config-chip ${configured ? 'configured' : 'not-configured'}">
-          ${isActive ? '▶ Active' : configured ? 'Configured' : 'Not set'}
-        </span>
-      `;
-
-      card.addEventListener('click', () => openProvider(p.id));
-      grid.appendChild(card);
-    }
-  }
-
-  function updateActiveBadge() {
-    if (state.activeProviderId) {
-      const p = state.providers.find(x => x.id === state.activeProviderId);
-      activeDot.className = 'active-dot';
-      activeDot.style.background = p?.accentColor ?? 'var(--green)';
-      activeDot.style.boxShadow  = `0 0 6px ${p?.accentColor ?? 'var(--green)'}`;
-      activeLabel.textContent = p?.displayName ?? state.activeProviderId;
-    } else {
-      activeDot.className = 'active-dot inactive';
-      activeDot.style.background = '';
-      activeDot.style.boxShadow = '';
-      activeLabel.textContent = 'No provider';
-    }
-  }
-
-  // ── Open Provider Panel ──────────────────────────────────────────────────────
-  function openProvider(providerId) {
-    state.selectedId = providerId;
-    const p = state.providers.find(x => x.id === providerId);
-    if (!p) return;
-
-    // Update card selections
-    renderProviderCards();
-
-    // Show panel
-    keySection.style.display = '';
-    keyPanel.style.display   = '';
-
-    // Panel header
-    panelDot.style.background = p.accentColor;
-    panelDot.style.boxShadow  = `0 0 8px ${p.accentColor}80`;
-    panelTitle.textContent = `${p.displayName} — API Key`;
-    panelHint.textContent  = p.apiKeyPlaceholder.slice(0, 20) + '...';
-
-    // Input placeholder & focus color
-    keyInput.placeholder = p.apiKeyPlaceholder;
-    keyInput.style.setProperty('--focus-color', p.accentColor);
-
-    // Apply button gradient
-    applyBtn.style.setProperty('--btn-from', p.accentColor);
-    applyBtn.style.setProperty('--btn-to',   shiftColor(p.accentColor));
-
-    // Info link
-    keyLink.textContent = p.displayName + ' dashboard';
-    keyLink.href = p.apiKeyUrl;
-    keyLink.addEventListener('click', (e) => {
-      e.preventDefault();
+  // Get API Key (link)
+  if (p.apiKeyUrl) {
+    const getKeyBtn = document.createElement('button');
+    getKeyBtn.className   = 'btn btn-ghost';
+    getKeyBtn.textContent = 'Get API Key';
+    getKeyBtn.addEventListener('click', () => {
       vscode.postMessage({ type: 'open-url', url: p.apiKeyUrl });
     });
-
-    // Models
-    const availableModels = p.capabilities?.availableModels ?? [];
-    modelSel.innerHTML = availableModels
-      .map(m => `<option value="${m}">${m}</option>`)
-      .join('');
-    modelSel.value = state.selectedModels[providerId] ?? p.selectedModel;
-
-    // Remove button visibility
-    const configured = state.configuredIds.includes(providerId);
-    removeBtn.classList.toggle('visible', configured);
-
-    // Clear state
-    keyInput.value = '';
-    hideStatus();
-    state.keyVisible = false;
-    keyInput.type = 'password';
-    updateEyeIcon();
+    btnRow.appendChild(getKeyBtn);
   }
 
-  // ── Model Selection ──────────────────────────────────────────────────────────
-  modelSel.addEventListener('change', () => {
-    if (!state.selectedId) return;
-    vscode.postMessage({ type: 'select-model', providerId: state.selectedId, model: modelSel.value });
+  // Use This Provider
+  const useBtn = document.createElement('button');
+  useBtn.className   = 'btn btn-ghost btn-use';
+  useBtn.textContent = isActive ? '✓ Active' : 'Use This Provider';
+  useBtn.disabled    = isActive;
+  useBtn.style.marginLeft = 'auto';
+  useBtn.addEventListener('click', () => {
+    vscode.postMessage({ type: 'switch-provider', providerId: p.id });
   });
+  btnRow.appendChild(useBtn);
 
-  // ── Eye Toggle ───────────────────────────────────────────────────────────────
-  eyeBtn.addEventListener('click', () => {
-    state.keyVisible = !state.keyVisible;
-    keyInput.type = state.keyVisible ? 'text' : 'password';
-    updateEyeIcon();
-  });
+  // ── Assemble ────────��──────────────────────────────���─────────────────────
+  card.appendChild(hdr);
+  card.appendChild(desc);
+  if (keySection) card.appendChild(keySection);
+  card.appendChild(modelWrap);
+  card.appendChild(btnRow);
 
-  function updateEyeIcon() {
-    eyeIcon.innerHTML = state.keyVisible
-      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
-      : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  return card;
+}
+
+// ── Active pill ──────────────────────────��─────────────────────────────���─────
+function updateActivePill() {
+  const p     = state.providers.find(x => x.id === state.activeProviderId);
+  const dot   = document.getElementById('activeDot');
+  const label = document.getElementById('activeLabel');
+  if (p) {
+    dot.style.background = p.accentColor;
+    dot.style.boxShadow  = `0 0 6px ${p.accentColor}`;
+    label.textContent    = p.name;
+  } else {
+    dot.style.background = 'var(--text-dimmer)';
+    dot.style.boxShadow  = 'none';
+    label.textContent    = 'No provider';
   }
+}
 
-  // ── Apply ────────────────────────────────────────────────────────────────────
-  applyBtn.addEventListener('click', async () => {
-    const key = keyInput.value.trim();
-    if (!key) {
-      showStatus('error', 'Please enter an API key.');
-      return;
-    }
-    if (!state.selectedId) return;
+// ── Helpers ─────────────────────────────────────────────────────────────��────
+function setStatus(el, type, text) {
+  el.className   = `key-status is-${type}`;
+  el.textContent = text;
+}
 
-    setValidating(true);
-    vscode.postMessage({
-      type: 'apply-key',
-      providerId: state.selectedId,
-      apiKey: key,
-      model: modelSel.value,
-    });
-  });
+function deriveAccentAlt(hex) {
+  const map = {
+    '#D4A574': '#7c6ee0',
+    '#10A37F': '#4fc3f7',
+    '#4285F4': '#34d399',
+    '#7c6ee0': '#4fc3f7',
+    '#6B7280': '#4fc3f7',
+  };
+  return map[hex] ?? '#7c6ee0';
+}
 
-  // ── Remove ───────────────────────────────────────────────────────────────────
-  removeBtn.addEventListener('click', () => {
-    if (!state.selectedId) return;
-    vscode.postMessage({ type: 'remove-key', providerId: state.selectedId });
-  });
+function svgEyeOpen() {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+function svgEyeClosed() {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+}
 
-  // ── Enter key ───────────────────────────────────────────────────────────────
-  keyInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') applyBtn.click();
-  });
-
-  // ── Validation Result Handler ────────────────────────────────────────────────
-  function handleValidationResult(result, providerId) {
-    setValidating(false);
-    if (result.valid) {
-      state.configuredIds = [...new Set([...state.configuredIds, providerId])];
-      showStatus('success', `Key accepted. ${state.providers.find(p=>p.id===providerId)?.displayName} is ready.`);
-      removeBtn.classList.add('visible');
-      keyInput.value = '';
-      renderProviderCards();
-      updateActiveBadge();
-    } else {
-      showStatus('error', result.error ?? 'Validation failed.');
-    }
-  }
-
-  // ── Status ───────────────────────────────────────────────────────────────────
-  function showStatus(type, text) {
-    statusMsg.className = `status-msg ${type}`;
-    $('statusIcon').textContent = type === 'success' ? '✓' : '✗';
-    $('statusText').textContent = text;
-  }
-
-  function hideStatus() {
-    statusMsg.className = 'status-msg';
-  }
-
-  // ── Loading State ────────────────────────────────────────────────────────────
-  function setValidating(loading) {
-    state.validating = loading;
-    applyBtn.disabled = loading;
-    applyBtn.innerHTML = loading
-      ? `<span class="btn-spinner"></span>Validating…`
-      : 'Apply Key';
-  }
-
-  // ── Color Utility ────────────────────────────────────────────────────────────
-  function shiftColor(hex) {
-    // Simple hue rotation for gradient "to" color
-    const map = {
-      '#D4A574': '#7c6ee0',
-      '#10A37F': '#4fc3f7',
-      '#4285F4': '#34d399',
-      '#7c6ee0': '#4fc3f7',
-    };
-    return map[hex] ?? '#4fc3f7';
-  }
-
-  // ── Request initial state ────────────────────────────────────────────────────
-  vscode.postMessage({ type: 'ready' });
+// ── Boot ────────────────────────���─────────────────────────────���───────────────
+vscode.postMessage({ type: 'ready' });
 </script>
 </body>
 </html>
