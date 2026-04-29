@@ -1,13 +1,8 @@
 const esbuild = require('esbuild');
-const path = require('path');
-
 const isWatch = process.argv.includes('--watch');
 
-const buildOptions = {
-  entryPoints: ['src/extension.ts'],
+const shared = {
   bundle: true,
-  outfile: 'dist/extension.js',
-  external: ['vscode', 'better-sqlite3', '@xenova/transformers'],
   format: 'cjs',
   platform: 'node',
   target: 'node18',
@@ -16,11 +11,28 @@ const buildOptions = {
   logLevel: 'info',
 };
 
+const extensionEntry = {
+  ...shared,
+  entryPoints: ['src/extension.ts'],
+  outfile: 'dist/extension.js',
+  external: ['vscode', 'better-sqlite3', '@xenova/transformers'],
+};
+
+const workerEntry = {
+  ...shared,
+  entryPoints: ['src/workers/embeddingWorker.ts'],
+  outfile: 'dist/workers/embeddingWorker.js',
+  external: ['@xenova/transformers'],
+};
+
 if (isWatch) {
-  esbuild.context(buildOptions).then((ctx) => {
-    ctx.watch();
-    console.log('[esbuild] Watching for changes...');
-  });
+  Promise.all([
+    esbuild.context(extensionEntry).then(ctx => ctx.watch()),
+    esbuild.context(workerEntry).then(ctx => ctx.watch()),
+  ]).then(() => console.log('[esbuild] Watching both entry points...'));
 } else {
-  esbuild.build(buildOptions).catch(() => process.exit(1));
+  Promise.all([
+    esbuild.build(extensionEntry),
+    esbuild.build(workerEntry),
+  ]).catch(() => process.exit(1));
 }

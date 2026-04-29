@@ -30,6 +30,7 @@ export interface DecisionPayload {
     filePaths: string[];
     tags: string[];
     codeContext?: string;
+    lineNumber?: number;
 }
 
 export interface DecisionNode {

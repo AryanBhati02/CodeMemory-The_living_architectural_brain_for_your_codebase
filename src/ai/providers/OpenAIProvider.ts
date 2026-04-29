@@ -9,7 +9,7 @@ export class OpenAIProvider implements IAIProvider {
   readonly id = 'openai';
   readonly name = 'OpenAI';
   readonly accentColor = '#10A37F';
-  readonly description = 'OpenAI GPT-4o — fast, capable, broad availability';
+  readonly description = 'OpenAI GPT-4.1 — fast, capable, broad availability';
   readonly apiKeyUrl = 'https://platform.openai.com/api-keys';
 
   readonly capabilities: ProviderCapabilities = {
@@ -18,8 +18,8 @@ export class OpenAIProvider implements IAIProvider {
     supportsPromptCaching: false,
     supportsFunctionCalling: true,
     maxContextTokens: 128_000,
-    defaultModel: 'gpt-4o',
-    availableModels: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+    defaultModel: 'gpt-4.1',
+    availableModels: ['gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4-turbo'],
   };
 
   validateKey(apiKey: string): { valid: boolean; reason?: string } {

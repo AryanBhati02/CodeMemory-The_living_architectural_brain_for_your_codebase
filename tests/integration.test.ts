@@ -1,5 +1,16 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+
+vi.mock('vscode', () => ({
+  EventEmitter: class {
+    event = (_listener: Function) => ({ dispose: () => {} });
+    fire(_data: unknown) {}
+    dispose() {}
+  },
+  Disposable: class { dispose() {} },
+}));
+
 import { ProviderManager }  from '../src/ai/providers/ProviderManager';
 import { CacheEngine, computeGraphHash } from '../src/ai/cache/CacheEngine';
 import { PromptBuilder }    from '../src/ai/pipeline/PromptBuilder';
@@ -69,7 +80,7 @@ describe('ProviderManager', () => {
 
   it('validates claude key format', () => {
     const pm = ProviderManager.getInstance();
-    expect(pm.validateKey('claude', 'sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxx').valid).toBe(true);
+    expect(pm.validateKey('claude', 'sk-ant-api03-' + 'x'.repeat(30)).valid).toBe(true); 
     expect(pm.validateKey('claude', 'bad-key').valid).toBe(false);
     expect(pm.validateKey('claude', 'sk-ant-short').valid).toBe(false);
   });
@@ -142,6 +153,14 @@ describe('CacheEngine', () => {
     const cache = new CacheEngine(300);
     cache.invalidate('graph-update');
     expect(cache.getStats().lastInvalidationReason).toBe('graph-update');
+  });
+
+  it('returns null after TTL expires', async () => {
+    
+    const cache = new CacheEngine(0.001);
+    cache.set('hash1', 'claude', 'system prompt text');
+    await new Promise(r => setTimeout(r, 20)); 
+    expect(cache.get('hash1', 'claude')).toBeNull();
   });
 });
 

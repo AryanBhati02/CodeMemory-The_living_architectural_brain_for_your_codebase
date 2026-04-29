@@ -34,7 +34,7 @@ export class DecorationEngine implements vscode.Disposable {
     );
 
     const decorations: vscode.DecorationOptions[] = relevant.map((d) => ({
-      range: new vscode.Range(0, 0, 0, 0),
+      range: new vscode.Range(d.payload.lineNumber ?? 0, 0, d.payload.lineNumber ?? 0, 0),
       hoverMessage: new vscode.MarkdownString(
         `**CodeMemory Decision**\n\n` +
         `**[${d.payload.type.toUpperCase()}]** ${d.payload.title}\n\n` +

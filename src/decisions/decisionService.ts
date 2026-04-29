@@ -64,13 +64,14 @@ export class DecisionService implements vscode.Disposable {
     const id = generateId();
 
     const payload: DecisionPayload = {
-      title:     partial.title.trim(),
-      rationale: partial.rationale.trim(),
-      type:      partial.type,
-      status:    partial.status ?? 'proposed',
-      filePaths: partial.filePaths ?? [],
-      tags:      partial.tags ?? [],
+      title:      partial.title.trim(),
+      rationale:  partial.rationale.trim(),
+      type:       partial.type,
+      status:     partial.status ?? 'proposed',
+      filePaths:  partial.filePaths ?? [],
+      tags:       partial.tags ?? [],
       codeContext: partial.codeContext,
+      lineNumber:  partial.lineNumber,
     };
 
     const node: DecisionNode = {

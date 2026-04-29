@@ -16,7 +16,7 @@ export class GeminiProvider implements IAIProvider {
   readonly id = 'gemini';
   readonly name = 'Gemini';
   readonly accentColor = '#4285F4';
-  readonly description = 'Google Gemini 1.5 Pro — 1M token context window';
+  readonly description = 'Google Gemini — 1M context window, multimodal';
   readonly apiKeyUrl = 'https://aistudio.google.com/app/apikey';
 
   readonly capabilities: ProviderCapabilities = {
@@ -25,8 +25,13 @@ export class GeminiProvider implements IAIProvider {
     supportsPromptCaching: false,
     supportsFunctionCalling: true,
     maxContextTokens: 1_000_000,
-    defaultModel: 'gemini-1.5-pro',
-    availableModels: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash'],
+    defaultModel: 'gemini-2.5-flash',
+    availableModels: [
+      'gemini-3.1-pro-preview',
+      'gemini-2.5-pro',
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+    ],
   };
 
   validateKey(apiKey: string): { valid: boolean; reason?: string } {

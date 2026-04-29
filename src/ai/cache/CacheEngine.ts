@@ -39,7 +39,7 @@ export class CacheEngine {
     this.ttlMs = ttlSeconds * 1000;
   }
 
-  get(graphHash: string, providerId: string): string | null {
+    get(graphHash: string, providerId: string): string | null {
     if (!this.entry) { this.misses++; return null; }
 
     const expired = Date.now() > this.entry.createdAt + this.entry.ttlMs;
@@ -55,12 +55,11 @@ export class CacheEngine {
     return this.entry.systemPrompt;
   }
 
-
-  set(graphHash: string, providerId: string, systemPrompt: string): void {
+    set(graphHash: string, providerId: string, systemPrompt: string): void {
     this.entry = { systemPrompt, graphHash, providerId, createdAt: Date.now(), ttlMs: this.ttlMs };
   }
 
-  invalidate(reason: string): void {
+    invalidate(reason: string): void {
     this.entry = null;
     this.lastInvalidatedAt = Date.now();
     this.lastInvalidationReason = reason;

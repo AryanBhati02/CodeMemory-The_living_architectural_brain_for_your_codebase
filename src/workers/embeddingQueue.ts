@@ -10,6 +10,7 @@ export class EmbeddingQueue implements vscode.Disposable {
   private worker: Worker | null = null;
   private readonly pendingJobs = new Map<string, PendingJob>();
   private workerReady = false;
+  private _disposed = false;
 
   private readonly _onEmbeddingComplete = new vscode.EventEmitter<string>();
   readonly onEmbeddingComplete = this._onEmbeddingComplete.event;
@@ -45,8 +46,16 @@ export class EmbeddingQueue implements vscode.Disposable {
         reject(err);
       });
       this.worker.on('exit', (code) => {
-        if (code !== 0) console.warn('[EmbeddingQueue] Worker exited with code', code);
         this.workerReady = false;
+        
+        for (const [nodeId, job] of this.pendingJobs) {
+          job.reject(new Error(`EmbeddingWorker exited with code ${code}`));
+        }
+        this.pendingJobs.clear();
+        
+        if (code !== 0 && !this._disposed) {
+          setTimeout(() => this._spawnWorker().catch(() => {}), 5000);
+        }
       });
     });
   }
@@ -85,6 +94,7 @@ export class EmbeddingQueue implements vscode.Disposable {
   }
 
   dispose(): void {
+    this._disposed = true;
     this.worker?.terminate();
     this.worker = null;
     this._onEmbeddingComplete.dispose();

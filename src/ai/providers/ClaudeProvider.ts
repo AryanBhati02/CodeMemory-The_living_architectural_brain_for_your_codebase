@@ -17,9 +17,14 @@ export class ClaudeProvider implements IAIProvider {
     supportsExtendedThinking: true,
     supportsPromptCaching: true,
     supportsFunctionCalling: true,
-    maxContextTokens: 200_000,
-    defaultModel: 'claude-sonnet-4-5',
-    availableModels: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5-20251001'],
+    maxContextTokens: 1_000_000,
+    defaultModel: 'claude-sonnet-4-6',
+    availableModels: [
+      'claude-opus-4-7',
+      'claude-opus-4-6',
+      'claude-sonnet-4-6',
+      'claude-haiku-4-5-20251001',
+    ],
   };
 
   validateKey(apiKey: string): { valid: boolean; reason?: string } {
@@ -35,6 +40,7 @@ export class ClaudeProvider implements IAIProvider {
   async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
+    const requestModel = this.capabilities.defaultModel;
 
     try {
       const systemContent: Anthropic.TextBlockParam & { cache_control?: { type: 'ephemeral' } } = {
@@ -44,18 +50,23 @@ export class ClaudeProvider implements IAIProvider {
       };
 
       const body: Anthropic.MessageCreateParamsNonStreaming = {
-        model: this.capabilities.defaultModel,
+        model: requestModel,
         max_tokens: options.maxTokens ?? 2048,
-        temperature: options.extendedThinking ? 1 : (options.temperature ?? 0.3),
         system: [systemContent as any],
         messages: options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       };
 
+      if (!this._isOpus47(requestModel)) {
+        body.temperature = options.temperature ?? 0.3;
+      }
+
       if (options.extendedThinking) {
-        (body as any).thinking = {
-          type: 'enabled',
-          budget_tokens: options.thinkingBudget ?? 4096,
-        };
+        if (this._isOpus47(requestModel)) {
+          (body as any).thinking = { type: 'adaptive' };
+          (body as any).output_config = { effort: 'high' };
+        } else {
+          (body as any).thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
+        }
       }
 
       const msg = await client.messages.create(body);
@@ -89,17 +100,32 @@ export class ClaudeProvider implements IAIProvider {
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
+    const requestModel = this.capabilities.defaultModel;
 
     try {
       const systemContent = { type: 'text', text: options.systemPrompt, cache_control: { type: 'ephemeral' } };
 
-      const stream = client.messages.stream({
-        model: this.capabilities.defaultModel,
+      const params: any = {
+        model: requestModel,
         max_tokens: options.maxTokens ?? 2048,
-        temperature: options.temperature ?? 0.3,
         system: [systemContent as any],
         messages: options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-      });
+      };
+
+      if (!this._isOpus47(requestModel)) {
+        params.temperature = options.temperature ?? 0.3;
+      }
+
+      if (options.extendedThinking) {
+        if (this._isOpus47(requestModel)) {
+          params.thinking = { type: 'adaptive' };
+          params.output_config = { effort: 'high' };
+        } else {
+          params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
+        }
+      }
+
+      const stream = client.messages.stream(params);
 
       let fullContent = '';
       for await (const event of stream) {
@@ -128,6 +154,10 @@ export class ClaudeProvider implements IAIProvider {
     } catch (err: any) {
       throw this._normalizeError(err);
     }
+  }
+
+  private _isOpus47(model: string): boolean {
+    return model.includes('opus-4-7');
   }
 
   private _normalizeError(err: any): AIProviderError {

@@ -45,24 +45,27 @@ CREATE INDEX IF NOT EXISTS idx_nodes_has_emb ON nodes(id) WHERE embedding IS NOT
 CREATE INDEX IF NOT EXISTS idx_edges_from    ON edges(from_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to      ON edges(to_id);
 
+-- Contentless FTS5: text is indexed but not stored (smaller DB).
+-- rowid is pinned to nodes.rowid so MATCH queries can join back via rowid.
+-- contentless_delete=1 enables rowid-based DELETE on the contentless table.
 CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
   id UNINDEXED, title, rationale, tags,
   content='', contentless_delete=1
 );
 
 CREATE TRIGGER IF NOT EXISTS nodes_ai AFTER INSERT ON nodes BEGIN
-  INSERT INTO nodes_fts(id, title, rationale, tags)
-  VALUES (new.id, json_extract(new.payload,'$.title'), json_extract(new.payload,'$.rationale'), json_extract(new.payload,'$.tags'));
+  INSERT INTO nodes_fts(rowid, id, title, rationale, tags)
+  VALUES (new.rowid, new.id, json_extract(new.payload,'$.title'), json_extract(new.payload,'$.rationale'), json_extract(new.payload,'$.tags'));
 END;
 
 CREATE TRIGGER IF NOT EXISTS nodes_au AFTER UPDATE ON nodes BEGIN
-  DELETE FROM nodes_fts WHERE id = old.id;
-  INSERT INTO nodes_fts(id, title, rationale, tags)
-  VALUES (new.id, json_extract(new.payload,'$.title'), json_extract(new.payload,'$.rationale'), json_extract(new.payload,'$.tags'));
+  DELETE FROM nodes_fts WHERE rowid = old.rowid;
+  INSERT INTO nodes_fts(rowid, id, title, rationale, tags)
+  VALUES (new.rowid, new.id, json_extract(new.payload,'$.title'), json_extract(new.payload,'$.rationale'), json_extract(new.payload,'$.tags'));
 END;
 
 CREATE TRIGGER IF NOT EXISTS nodes_ad AFTER DELETE ON nodes BEGIN
-  DELETE FROM nodes_fts WHERE id = old.id;
+  DELETE FROM nodes_fts WHERE rowid = old.rowid;
 END;
 `;
 
@@ -134,9 +137,14 @@ export class CodeMemoryDatabase {
   searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
+    // Join via rowid: the triggers pin nodes_fts.rowid == nodes.rowid so
+    // MATCH results (which expose rowid reliably on contentless FTS5 tables)
+    // map directly back to the nodes table.
     return (this.db.prepare(`
-      SELECT n.* FROM nodes n JOIN nodes_fts f ON n.id=f.id WHERE nodes_fts MATCH ? ORDER BY rank LIMIT ?
-    `).all(`"${safe}"*`, limit) as NodeRow[]).map(r => this._deserializeNode(r));
+      SELECT * FROM nodes WHERE rowid IN (
+        SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH ?
+      ) LIMIT ?
+    `).all(`${safe}*`, limit) as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
   getEmbeddedNodes(): Array<{ id: string; embedding: Float32Array }> {

@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import type { ProviderManager } from '../ai/providers/ProviderManager';
 import type { SecretStorageService } from '../storage/secretStorage';
-import { SettingsManager } from '../settings/SettingsManager';
 import { getNonce } from '../utils/getNonce';
 
 type WebviewMessage =
@@ -67,14 +66,15 @@ export class ProviderDrawer implements vscode.Disposable {
       case 'remove-key':
         await this.secrets.deleteKey(msg.providerId);
         this._post({ type: 'key-removed', providerId: msg.providerId });
+        await this._sendInitialState();
         break;
 
       case 'switch-provider':
         try {
           this.manager.setActiveProvider(msg.providerId);
-          await SettingsManager.setActiveProvider(msg.providerId);
+          await this.secrets.setActiveProvider(msg.providerId);
           this._onProviderChanged.fire(msg.providerId);
-          this._post({ type: 'provider-changed', providerId: msg.providerId });
+          this._post({ type: 'provider-switched', providerId: msg.providerId });
         } catch (err: any) {
           this._post({ type: 'error', message: err.message });
         }

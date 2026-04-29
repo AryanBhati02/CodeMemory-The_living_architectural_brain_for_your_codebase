@@ -12,8 +12,9 @@ export async function captureDecisionCommand(
   treeProvider: DecisionTreeProvider
 ): Promise<void> {
   const editor = vscode.window.activeTextEditor;
-  const codeContext = editor?.document.getText(editor.selection) || undefined;
-  const filePath    = editor?.document.uri.fsPath || undefined;
+  const codeContext  = editor?.document.getText(editor.selection) || undefined;
+  const filePath     = editor?.document.uri.fsPath || undefined;
+  const lineNumber   = editor?.selection.start.line;
 
   const title = await vscode.window.showInputBox({
     title: 'CodeMemory: Capture Decision (1/3)',
@@ -48,6 +49,7 @@ export async function captureDecisionCommand(
         rationale,
         type: (typeChoice as any).id,
         filePaths: filePath ? [filePath] : [],
+        lineNumber,
         tags: [],
         codeContext,
       });
@@ -111,36 +113,46 @@ export async function askAICommand(
   });
   if (!query) return;
 
-  const editor       = vscode.window.activeTextEditor;
-  const codeContext  = editor?.document.getText(editor.selection) || undefined;
-  const activeFile   = editor?.document.uri.fsPath;
-  const decisions    = decisionService.getDecisions();
+  const editor      = vscode.window.activeTextEditor;
+  const codeContext = editor?.document.getText(editor.selection) || undefined;
+  const activeFile  = editor?.document.uri.fsPath;
+  const decisions   = decisionService.getDecisions();
+
+  
+  const panel = vscode.window.createWebviewPanel(
+    'codememory.aiResponse',
+    'CodeMemory: AI Response',
+    vscode.ViewColumn.Beside,
+    { enableScripts: true }
+  );
+  panel.webview.html = buildStreamingResponseHtml(query);
 
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'CodeMemory: Thinking…', cancellable: true },
-    async (progress, token) => {
+    async (_progress, token) => {
       const signal = new AbortController();
       token.onCancellationRequested(() => signal.abort());
 
       try {
+        let accumulated = '';
+
         const result = await pipeline.query({
           query,
           decisions,
           activeFilePath: activeFile,
           codeContext,
+          stream: true,
+          onChunk: (chunk) => {
+            accumulated += chunk.delta;
+            panel.webview.postMessage({ type: 'chunk', accumulated });
+          },
           signal: signal.signal,
         });
 
-        const panel = vscode.window.createWebviewPanel(
-          'codememory.aiResponse',
-          'CodeMemory: AI Response',
-          vscode.ViewColumn.Beside,
-          { enableScripts: false }
-        );
-
-        const cached  = result.cacheHit ? ' *(from cache)*' : '';
-        const injected = result.graphDecisionsInjected;
-        panel.webview.html = buildResponseHtml(query, result.response.content, result.providerId, injected, cached);
+        panel.webview.postMessage({
+          type: 'done',
+          metaText: `${result.providerId} · ${result.graphDecisionsInjected} decisions · ${result.cacheHit ? 'cached' : 'live'}`,
+        });
       } catch (err: any) {
         vscode.window.showErrorMessage(`CodeMemory AI error: ${err.message}`);
       }
@@ -148,28 +160,37 @@ export async function askAICommand(
   );
 }
 
-function buildResponseHtml(query: string, content: string, providerId: string, injected: number, cached: string): string {
-  const escaped = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function buildStreamingResponseHtml(query: string): string {
+  const escapedQuery = query.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <style>
-  body{background:#050508;color:#e2e8f0;font-family:'Segoe UI',sans-serif;padding:24px;line-height:1.7}
+  body{background:#050508;color:#e2e8f0;font-family:'Segoe UI',sans-serif;padding:24px;line-height:1.7;margin:0}
   .query{font-size:11px;font-family:monospace;color:#7878a0;margin-bottom:16px;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:6px;border-left:2px solid #4fc3f7}
-  pre{white-space:pre-wrap;font-family:monospace;font-size:13px}
-  .meta{font-size:10px;font-family:monospace;color:#3a3a58;margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px}
+  #content{font-size:13px}
+  #content pre{background:rgba(255,255,255,.04);padding:12px;border-radius:6px;overflow-x:auto;white-space:pre-wrap}
+  #content code{font-family:monospace}
+  #meta{font-size:10px;font-family:monospace;color:#3a3a58;margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px}
 </style>
 </head>
 <body>
-  <div class="query">Q: ${query}</div>
-  <pre>${escaped}</pre>
-  <div class="meta">Provider: ${providerId} · Decisions injected: ${injected}${cached}</div>
+  <div class="query">Q: ${escapedQuery}</div>
+  <div id="content"></div>
+  <div id="meta"></div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    window.addEventListener('message', e => {
+      if (e.data.type === 'chunk') document.getElementById('content').innerHTML = marked.parse(e.data.accumulated);
+      if (e.data.type === 'done') document.getElementById('meta').textContent = e.data.metaText;
+    });
+  </script>
 </body>
 </html>`;
 }
 
-// ─── Navigate to Decision ─────────────────────────────────────────────────────
+
 
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
