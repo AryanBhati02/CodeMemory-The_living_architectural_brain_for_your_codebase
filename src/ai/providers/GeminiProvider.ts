@@ -81,7 +81,7 @@ export class GeminiProvider implements IAIProvider {
     }
   }
 
-
+  /** Send a streaming request and call onChunk for each text delta from Gemini. */
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const t0 = Date.now();
     try {

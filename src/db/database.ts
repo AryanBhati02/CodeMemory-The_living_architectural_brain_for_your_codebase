@@ -140,7 +140,9 @@ export class CodeMemoryDatabase {
     searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
-
+    // Join via rowid: the triggers pin nodes_fts.rowid == nodes.rowid so
+    // MATCH results (which expose rowid reliably on contentless FTS5 tables)
+    // map directly back to the nodes table.
     return (this.db.prepare(`
       SELECT * FROM nodes WHERE rowid IN (
         SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH ?
@@ -148,22 +150,22 @@ export class CodeMemoryDatabase {
     `).all(`${safe}*`, limit) as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
-
+  /** Return all node IDs and their embedding vectors; used to seed SemanticRanker on startup. */
   getEmbeddedNodes(): Array<{ id: string; embedding: Float32Array }> {
     return (this.db.prepare(`SELECT id,embedding FROM nodes WHERE embedding IS NOT NULL`).all() as Array<{ id: string; embedding: Buffer }>)
       .map(r => ({ id: r.id, embedding: new Float32Array(r.embedding.buffer) }));
   }
 
-
+  /** Fetch a set of nodes by ID list; preserves input order is NOT guaranteed — sort afterward if needed. */
   getNodesByIds(ids: string[]): DecisionNode[] {
     if (!ids.length) return [];
     const ph = ids.map(() => '?').join(',');
     return (this.db.prepare(`SELECT * FROM nodes WHERE id IN (${ph})`).all(...ids) as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
+  // ─── Edge CRUD ────────────────────────────────────────────────────────────
 
-
-
+  /** Insert or replace an edge; duplicate edges with the same composite ID are overwritten. */
   insertEdge(edge: DecisionEdge): void {
     this.db.prepare(`
       INSERT OR REPLACE INTO edges (id,from_id,to_id,relation_type,weight,created_at,note)
@@ -171,24 +173,24 @@ export class CodeMemoryDatabase {
     `).run(edge.id, edge.fromId, edge.toId, edge.relationType, edge.weight, edge.createdAt, edge.note ?? null);
   }
 
-
+  /** Delete an edge by its composite ID string. */
   deleteEdge(id: string): void {
     this.db.prepare(`DELETE FROM edges WHERE id=?`).run(id);
   }
 
-
+  /** Return all edges where the node is either source or target. */
   getEdgesForNode(nodeId: string): DecisionEdge[] {
     return (this.db.prepare(`SELECT * FROM edges WHERE from_id=? OR to_id=?`).all(nodeId, nodeId) as EdgeRow[]).map(r => this._deserializeEdge(r));
   }
 
-
+  /** Return every edge in the graph; used by GraphPanel to render the full adjacency list. */
   getAllEdges(): DecisionEdge[] {
     return (this.db.prepare(`SELECT * FROM edges`).all() as EdgeRow[]).map(r => this._deserializeEdge(r));
   }
 
+  // ─── Stats ────────────────────────────────────────────────────────────────
 
-
-
+  /** Compute aggregate stats: total counts, breakdowns by type/status, and embedding readiness. */
   getStats(): GraphStats {
     const total          = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes`).get() as CountRow).c;
     const totalEdges     = (this.db.prepare(`SELECT COUNT(*) as c FROM edges`).get() as CountRow).c;

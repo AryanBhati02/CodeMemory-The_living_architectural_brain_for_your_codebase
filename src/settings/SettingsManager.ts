@@ -5,6 +5,7 @@ export interface CodeMemoryConfig {
   activeProviderId: string;
   maxDecisionsPerQuery: number;
   cacheTtlSeconds: number;
+  stuckDetectorEnabled: boolean;
 }
 
 export class SettingsManager {
@@ -13,9 +14,10 @@ export class SettingsManager {
   static get(): CodeMemoryConfig {
     const cfg = vscode.workspace.getConfiguration(SettingsManager.SECTION);
     return {
-      activeProviderId:    cfg.get<string>('activeProviderId',    'claude'),
+      activeProviderId:     cfg.get<string>('activeProviderId',    'claude'),
       maxDecisionsPerQuery: cfg.get<number>('maxDecisionsPerQuery', 10),
       cacheTtlSeconds:      cfg.get<number>('cacheTtlSeconds',      300),
+      stuckDetectorEnabled: cfg.get<boolean>('stuckDetectorEnabled', true),
     };
   }
 

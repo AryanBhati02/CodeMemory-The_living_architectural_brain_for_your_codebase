@@ -4,9 +4,9 @@ import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { TokenDashboardPanel as TDP } from '../ui/TokenDashboardPanel';
-import type { RelationType, DecisionType } from '../graph/types';
+import type { RelationType } from '../graph/types';
 
-interface DecisionTypeItem extends vscode.QuickPickItem { id: DecisionType | string }
+interface DecisionTypeItem extends vscode.QuickPickItem { id: string }
 interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
 
 
@@ -51,7 +51,7 @@ export async function captureDecisionCommand(
       await decisionService.createDecision({
         title,
         rationale,
-        type: typeChoice.id as DecisionType,
+        type: typeChoice.id,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
         tags: [],
@@ -255,7 +255,7 @@ export async function editDecisionCommand(
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
-    type:   typePick.id as DecisionType,
+    type:   typePick.id,
     status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);

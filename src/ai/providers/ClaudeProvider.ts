@@ -10,8 +10,8 @@ interface ExtendedThinkingParams {
   thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
   output_config?: { effort: 'high' };
 }
-type ExtendedMessageParams = Omit<Anthropic.MessageCreateParamsNonStreaming, 'thinking' | 'output_config'> & ExtendedThinkingParams;
-type ExtendedStreamParams  = Omit<Anthropic.MessageStreamParams, 'thinking' | 'output_config'> & ExtendedThinkingParams;
+type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
+type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
 
 
 interface ThinkingBlock { type: 'thinking'; thinking: string }
@@ -89,7 +89,7 @@ export class ClaudeProvider implements IAIProvider {
         }
       }
 
-      const msg = await client.messages.create(body as any);
+      const msg = await client.messages.create(body);
 
       let content = '';
       let thinking = '';
@@ -117,7 +117,7 @@ export class ClaudeProvider implements IAIProvider {
     }
   }
 
-
+  /** Send a streaming request and call onChunk for each text delta. */
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
@@ -150,7 +150,7 @@ export class ClaudeProvider implements IAIProvider {
         }
       }
 
-      const stream = client.messages.stream(params as any);
+      const stream = client.messages.stream(params);
 
       let fullContent = '';
       for await (const event of stream) {
@@ -162,7 +162,7 @@ export class ClaudeProvider implements IAIProvider {
       }
       onChunk({ delta: '', done: true });
 
-      const msg   = await stream.finalMessage();
+      const msg   = await stream.getFinalMessage();
       const usage = msg.usage as AnthropicUsageWithCaching;
       return {
         content: fullContent,

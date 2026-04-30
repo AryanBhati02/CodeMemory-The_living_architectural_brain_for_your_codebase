@@ -15,6 +15,7 @@ import { ProviderDrawer }         from './ui/ProviderDrawer';
 import { TokenDashboardPanel }    from './ui/TokenDashboardPanel';
 import { GraphPanel }             from './ui/GraphPanel';
 import { DecisionDetailPanel }    from './ui/DecisionDetailPanel';
+import { StuckDetector }          from './proactive/StuckDetector';
 import { registerAllCommands }    from './commands/registry';
 
 
@@ -129,6 +130,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       updateStatusBar(statusBar, providerManager);
     })
   );
+
+  
+  if (config.stuckDetectorEnabled) {
+    const stuckDetector = new StuckDetector(decisionService);
+    context.subscriptions.push(stuckDetector);
+  }
 
   
   context.subscriptions.push(

@@ -32,29 +32,29 @@ export class DecisionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
   constructor(private readonly decisionService: DecisionService) {}
 
-
+  /** Fire a tree-data-changed event to refresh the entire sidebar view. */
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
-
+  /** Apply a keyword filter to the tree; clears the filter when query is empty. */
   setFilter(query: string): void {
     this.filterQuery = query.toLowerCase();
     this.refresh();
   }
 
-
+  /** Return the VS Code TreeItem for a given tree node (required by TreeDataProvider). */
   getTreeItem(element: TreeNode): vscode.TreeItem {
     return element;
   }
 
-
+  /** Return group nodes at root level, or decision items when expanding a group. */
   getChildren(element?: TreeNode): TreeNode[] {
     if (element instanceof GroupTreeItem) {
       return element.children;
     }
 
-
+    // Root: get all decisions, group them
     let decisions = this.decisionService.getDecisions();
 
     if (this.filterQuery) {

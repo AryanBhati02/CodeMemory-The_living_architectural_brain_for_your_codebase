@@ -164,7 +164,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
       min-height: 100vh;
     }
 
-
+    /* ── Header ─────────────────────────────────────────── */
     .header { margin-bottom: 28px; }
     .header-title {
       font-size: 22px;
@@ -196,7 +196,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
     .badge-deprecated { background: rgba(245,165,42,0.12); color: #f5a52a; border: 1px solid rgba(245,165,42,0.2); }
     .badge-superseded { background: rgba(255,92,92,0.12);  color: #ff5c5c; border: 1px solid rgba(255,92,92,0.2); }
 
-
+    /* ── Section cards ──────────────────────────────────── */
     .section {
       background: rgba(255,255,255,0.025);
       border: 1px solid rgba(255,255,255,0.06);
@@ -214,7 +214,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
     }
     .section-body { font-size: 13px; color: #cbd5e1; line-height: 1.7; }
 
-
+    /* ── Code context ───────────────────────────────────── */
     .code-block {
       background: rgba(0,0,0,0.4);
       border: 1px solid rgba(255,255,255,0.06);
@@ -229,7 +229,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
       line-height: 1.6;
     }
 
-
+    /* ── File paths ─────────────────────────────────────── */
     .file-list { list-style: none; }
     .file-list li { margin-bottom: 6px; }
     .file-link {
@@ -242,7 +242,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
     }
     .file-link:hover { color: #7dc4ff; text-decoration: underline; }
 
-
+    /* ── Tags ───────────────────────────────────────────── */
     .tags { display: flex; gap: 6px; flex-wrap: wrap; }
     .tag-pill {
       font-size: 11px;
@@ -254,7 +254,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
       color: #94a3b8;
     }
 
-
+    /* ── Related decisions ──────────────────────────────── */
     .related-list { list-style: none; }
     .related-list li {
       display: flex;
@@ -290,7 +290,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
     }
     .rel-title:hover { color: #7dc4ff; text-decoration: underline; }
 
-
+    /* ── Metadata footer ────────────────────────────────── */
     .meta-footer {
       margin-top: 24px;
       padding-top: 16px;
@@ -301,7 +301,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
       line-height: 1.8;
     }
 
-
+    /* ── Action buttons ─────────────────────────────────── */
     .actions { display: flex; gap: 10px; margin-top: 20px; }
     .btn {
       font-family: monospace;
@@ -401,7 +401,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
 
       document.getElementById('rationale').textContent = node.payload.rationale;
 
-
+      // Code context
       const codeSection = document.getElementById('code-section');
       if (node.payload.codeContext) {
         codeSection.classList.remove('hidden');
@@ -410,7 +410,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
         codeSection.classList.add('hidden');
       }
 
-
+      // File paths
       const filesSection = document.getElementById('files-section');
       const fileList = document.getElementById('file-list');
       fileList.innerHTML = '';
@@ -432,7 +432,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
         filesSection.classList.add('hidden');
       }
 
-
+      // Tags
       const tagsSection = document.getElementById('tags-section');
       const tagsEl = document.getElementById('tags');
       tagsEl.innerHTML = '';
@@ -449,7 +449,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
         tagsSection.classList.add('hidden');
       }
 
-
+      // Related decisions
       const relatedSection = document.getElementById('related-section');
       const relatedList = document.getElementById('related-list');
       relatedList.innerHTML = '';
@@ -491,14 +491,14 @@ export class DecisionDetailPanel implements vscode.Disposable {
         relatedSection.classList.add('hidden');
       }
 
-
+      // Metadata footer
       var meta = document.getElementById('meta-footer');
       meta.innerHTML =
         'Created by ' + esc(node.authorName) + ' on ' + formatDate(node.createdAt) + '<br>' +
         'Last updated ' + formatDate(node.updatedAt);
     }
 
-
+    // --- Buttons ---
     document.getElementById('btn-edit').addEventListener('click', function() {
       vscode.postMessage({ type: 'edit' });
     });
@@ -506,7 +506,7 @@ export class DecisionDetailPanel implements vscode.Disposable {
       vscode.postMessage({ type: 'delete' });
     });
 
-
+    // --- Messages from extension ---
     window.addEventListener('message', function(e) {
       var msg = e.data;
       if (msg.type === 'init') {

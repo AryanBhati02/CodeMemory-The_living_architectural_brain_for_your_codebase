@@ -247,7 +247,7 @@ export class GraphPanel implements vscode.Disposable {
       edgeLabelGroup.selectAll('*').remove();
       nodeGroup.selectAll('*').remove();
 
-
+      // --- Edges ---
       const linkSel = linkGroup.selectAll('line')
         .data(links)
         .enter()
@@ -275,7 +275,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('text-anchor', 'middle')
         .text(d => d.relationType.replace(/_/g, ' '));
 
-
+      // --- Nodes ---
       const nodeSel = nodeGroup.selectAll('g')
         .data(nodes)
         .enter()
@@ -295,7 +295,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('stroke-width', 2)
         .attr('stroke-opacity', 0.3);
 
-
+      // Glow effect
       nodeSel.append('circle')
         .attr('r', d => nodeRadius(d) + 6)
         .attr('fill', 'none')
@@ -311,7 +311,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('font-family', 'system-ui, sans-serif')
         .text(d => truncate(d.title, 20));
 
-
+      // Hover
       nodeSel
         .on('mouseenter', (event, d) => {
           ttType.textContent   = d.type;
@@ -330,7 +330,7 @@ export class GraphPanel implements vscode.Disposable {
           vscode.postMessage({ type: 'node-click', nodeId: d.id });
         });
 
-
+      // --- Simulation ---
       simulation = d3.forceSimulation(nodes)
         .force('link', d3.forceLink(links).id(d => d.id).distance(100))
         .force('charge', d3.forceManyBody().strength(-300))
@@ -352,7 +352,7 @@ export class GraphPanel implements vscode.Disposable {
       });
     }
 
-
+    // --- Drag handlers ---
     function dragStart(event, d) {
       if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
@@ -368,14 +368,14 @@ export class GraphPanel implements vscode.Disposable {
       d.fy = null;
     }
 
-
+    // --- Resize ---
     window.addEventListener('resize', () => {
       width  = window.innerWidth;
       height = window.innerHeight;
       if (simulation) simulation.force('center', d3.forceCenter(width / 2, height / 2)).alpha(0.3).restart();
     });
 
-
+    // --- Messages from extension ---
     window.addEventListener('message', (e) => {
       const msg = e.data;
       if (msg.type === 'graph-data') {
