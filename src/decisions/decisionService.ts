@@ -1,4 +1,20 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import type { CodeMemoryDatabase } from '../db/database';
@@ -62,7 +78,8 @@ export class DecisionService implements vscode.Disposable {
 
   
 
-    async createDecision(
+  
+  async createDecision(
     partial: Omit<DecisionPayload, 'status' | 'filePaths' | 'tags'> & { status?: DecisionPayload['status']; filePaths?: string[]; tags?: string[] }
   ): Promise<DecisionNode> {
     const errors = validatePayload(partial);
@@ -96,7 +113,8 @@ export class DecisionService implements vscode.Disposable {
     return node;
   }
 
-    async updateDecision(id: string, updates: Partial<DecisionPayload>): Promise<DecisionNode> {
+  
+  async updateDecision(id: string, updates: Partial<DecisionPayload>): Promise<DecisionNode> {
     const existing = this.db.getNodeById(id);
     if (!existing) throw new Error(`Decision not found: ${id}`);
 
@@ -117,17 +135,20 @@ export class DecisionService implements vscode.Disposable {
     return { ...existing, payload, updatedAt: ts };
   }
 
-    deleteDecision(id: string): void {
+  
+  deleteDecision(id: string): void {
     if (!this.db.getNodeById(id)) throw new Error(`Decision not found: ${id}`);
     this.db.deleteNode(id);
     this._emitChange('delete', id);
   }
 
-    getDecision(id: string): DecisionNode | undefined {
+  
+  getDecision(id: string): DecisionNode | undefined {
     return this.db.getNodeById(id);
   }
 
-    getDecisions(filter?: DecisionFilter): DecisionNode[] {
+  
+  getDecisions(filter?: DecisionFilter): DecisionNode[] {
     if (!filter || !Object.keys(filter).length) return this.db.getAllNodes();
 
     if (filter.searchQuery) return this.db.searchNodesFts(filter.searchQuery, filter.limit ?? 20);
@@ -143,11 +164,13 @@ export class DecisionService implements vscode.Disposable {
     return nodes.slice(offset, offset + limit);
   }
 
-    searchDecisions(query: string, limit = 20): DecisionNode[] {
+  
+  searchDecisions(query: string, limit = 20): DecisionNode[] {
     return this.db.searchNodesFts(query, limit);
   }
 
-    async hybridSearch(query: string, limit = 10): Promise<DecisionNode[]> {
+  
+  async hybridSearch(query: string, limit = 10): Promise<DecisionNode[]> {
     let semanticIds: string[] = [];
     try {
       const queryVec = await this.embeddingQueue.embedText(query);
@@ -173,7 +196,8 @@ export class DecisionService implements vscode.Disposable {
 
   
 
-    createEdge(
+  
+  createEdge(
     fromId: string, toId: string, relationType: RelationType,
     options: { weight?: number; note?: string } = {}
   ): DecisionEdge {
@@ -200,21 +224,26 @@ export class DecisionService implements vscode.Disposable {
     return edge;
   }
 
-    deleteEdge(fromId: string, toId: string, rel: RelationType): void {
+  
+  deleteEdge(fromId: string, toId: string, rel: RelationType): void {
     this.db.deleteEdge(generateEdgeId(fromId, rel, toId));
   }
 
-    getEdgesForDecision(nodeId: string): DecisionEdge[] {
+  
+  getEdgesForDecision(nodeId: string): DecisionEdge[] {
     return this.db.getEdgesForNode(nodeId);
   }
 
-    getAllEdges(): DecisionEdge[] { return this.db.getAllEdges(); }
+  
+  getAllEdges(): DecisionEdge[] { return this.db.getAllEdges(); }
 
-    getGraphStats(): GraphStats {
+  
+  getGraphStats(): GraphStats {
     return this.db.getStats();
   }
 
-    async importDecisions(nodes: DecisionNode[]): Promise<void> {
+  
+  async importDecisions(nodes: DecisionNode[]): Promise<void> {
     this.db.transaction(() => {
       for (const node of nodes) {
         if (this.db.getNodeById(node.id)) {

@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import { getNonce } from '../utils/getNonce';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';

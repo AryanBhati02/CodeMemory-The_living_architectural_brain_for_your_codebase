@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -34,14 +40,16 @@ export class GeminiProvider implements IAIProvider {
     ],
   };
 
-    validateKey(apiKey: string): { valid: boolean; reason?: string } {
+  
+  validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey || apiKey.length < 20) {
       return { valid: false, reason: 'Gemini API key appears invalid.' };
     }
     return { valid: true };
   }
 
-    async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
+  
+  async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const t0 = Date.now();
     try {
       const genAI = new GoogleGenerativeAI(apiKey);

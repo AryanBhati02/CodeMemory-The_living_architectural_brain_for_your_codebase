@@ -1,6 +1,13 @@
 
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import type { DecisionNode } from '../graph/types';
+
 
 const TYPE_ICONS: Record<string, string> = {
   pattern:    'circuit-board',

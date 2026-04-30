@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import {
   captureDecisionCommand,
@@ -29,6 +35,7 @@ export interface CommandDeps {
   showGraphPanel:      () => void;
   showDecisionDetail:  (nodeId: string) => void;
 }
+
 
 export function registerAllCommands(deps: CommandDeps): void {
   const { context, decisionService, pipeline, treeProvider, providerDrawer } = deps;

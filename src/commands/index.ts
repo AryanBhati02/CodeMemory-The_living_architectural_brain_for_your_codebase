@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
@@ -48,6 +54,7 @@ async function suggestDecisionMetadata(
     return null;
   }
 }
+
 
 
 
@@ -171,6 +178,7 @@ export async function searchDecisionsCommand(
 
 
 
+
 export async function askAICommand(
   pipeline: AIPipeline,
   decisionService: DecisionService
@@ -261,6 +269,7 @@ function buildStreamingResponseHtml(query: string): string {
 
 
 
+
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
   if (!filePaths.length) return;
@@ -271,6 +280,7 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
 }
+
 
 
 
@@ -321,10 +331,11 @@ export async function editDecisionCommand(
     title,
     rationale,
     type:   typePick.id as any,
-    status: statusPick.label as any,
+    status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
 }
+
 
 
 
@@ -341,6 +352,7 @@ export async function deleteDecisionCommand(
   decisionService.deleteDecision(node.id);
   vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
 }
+
 
 
 
@@ -376,6 +388,7 @@ export async function linkDecisionCommand(
 
 
 
+
 export async function exportDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {
@@ -389,6 +402,7 @@ export async function exportDecisionsCommand(
   await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf-8'));
   vscode.window.showInformationMessage(`Exported ${decisions.length} decisions to ${uri.fsPath}`);
 }
+
 
 
 

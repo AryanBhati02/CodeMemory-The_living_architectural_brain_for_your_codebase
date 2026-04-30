@@ -1,4 +1,31 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import { logger }                 from './utils/logger';
 import { SecretStorageService }   from './storage/secretStorage';
@@ -100,7 +127,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   
   const statusBar = createStatusBar();
-  updateStatusBar(statusBar, providerManager);
+  const initialStats = decisionService.getGraphStats();
+  updateStatusBar(statusBar, providerManager, { total: initialStats.totalDecisions, embedded: initialStats.embeddingsReady });
   context.subscriptions.push(statusBar);
 
   
@@ -111,16 +139,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     aiPipeline.invalidateCache(`graph-${e.kind}:${e.nodeId}`);
     treeProvider.refresh();
     decorationEngine.updateDecisions(decisionService.getDecisions());
+    const graphStats = decisionService.getGraphStats();
+    updateStatusBar(statusBar, providerManager, { total: graphStats.totalDecisions, embedded: graphStats.embeddingsReady });
   });
 
   
-  embeddingQueue.onEmbeddingComplete(() => treeProvider.refresh());
+  embeddingQueue.onEmbeddingComplete(() => {
+    treeProvider.refresh();
+    const embedStats = decisionService.getGraphStats();
+    updateStatusBar(statusBar, providerManager, { total: embedStats.totalDecisions, embedded: embedStats.embeddingsReady });
+  });
 
   
   providerDrawer.onProviderChanged((newId) => {
     eventBus.fireProviderChange({ previousProviderId: providerManager.getActiveProviderId(), newProviderId: newId });
     aiPipeline.invalidateCache('provider-switch');
-    updateStatusBar(statusBar, providerManager);
+    const switchStats = decisionService.getGraphStats();
+    updateStatusBar(statusBar, providerManager, { total: switchStats.totalDecisions, embedded: switchStats.embeddingsReady });
   });
 
   
@@ -128,7 +163,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     SettingsManager.onDidChange(() => {
       const cfg = SettingsManager.get();
       try { providerManager.setActiveProvider(cfg.activeProviderId); } catch {}
-      updateStatusBar(statusBar, providerManager);
+      const cfgStats = decisionService.getGraphStats();
+      updateStatusBar(statusBar, providerManager, { total: cfgStats.totalDecisions, embedded: cfgStats.embeddingsReady });
     })
   );
 
@@ -163,9 +199,13 @@ function createStatusBar(): vscode.StatusBarItem {
   return item;
 }
 
-function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager): void {
+function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager, stats?: { total: number; embedded: number }): void {
   const provider = pm.getActiveProvider();
-  item.text    = `$(sparkle) ${provider.name}`;
+  if (stats) {
+    item.text = `$(sparkle) ${provider.name} · ${stats.total} decisions · ${stats.embedded}/${stats.total} embedded`;
+  } else {
+    item.text = `$(sparkle) ${provider.name}`;
+  }
   item.tooltip = `CodeMemory: ${provider.name} active — click to change`;
 }
 

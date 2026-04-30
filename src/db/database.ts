@@ -1,4 +1,14 @@
 
+
+
+
+
+
+
+
+
+
+
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -101,7 +111,8 @@ export class CodeMemoryDatabase {
 
   
 
-    insertNode(node: DecisionNode): void {
+  
+  insertNode(node: DecisionNode): void {
     this.db.prepare(`
       INSERT INTO nodes (id,type,payload,embedding,created_at,updated_at,author_name,author_email)
       VALUES (?,?,?,?,?,?,?,?)
@@ -112,32 +123,39 @@ export class CodeMemoryDatabase {
     );
   }
 
-    updateNode(id: string, payload: DecisionNode['payload'], updatedAt: string): void {
+  
+  updateNode(id: string, payload: DecisionNode['payload'], updatedAt: string): void {
     this.db.prepare(`UPDATE nodes SET payload=?,updated_at=? WHERE id=?`).run(JSON.stringify(payload), updatedAt, id);
   }
 
-    updateNodeEmbedding(id: string, embedding: Float32Array): void {
+  
+  updateNodeEmbedding(id: string, embedding: Float32Array): void {
     this.db.prepare(`UPDATE nodes SET embedding=? WHERE id=?`).run(Buffer.from(embedding.buffer), id);
   }
 
-    deleteNode(id: string): void {
+  
+  deleteNode(id: string): void {
     this.db.prepare(`DELETE FROM nodes WHERE id=?`).run(id);
   }
 
-    getNodeById(id: string): DecisionNode | undefined {
+  
+  getNodeById(id: string): DecisionNode | undefined {
     const row = this.db.prepare(`SELECT * FROM nodes WHERE id=?`).get(id) as NodeRow | undefined;
     return row ? this._deserializeNode(row) : undefined;
   }
 
-    getAllNodes(): DecisionNode[] {
+  
+  getAllNodes(): DecisionNode[] {
     return (this.db.prepare(`SELECT * FROM nodes ORDER BY updated_at DESC`).all() as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
-    getUnembeddedNodes(): DecisionNode[] {
+  
+  getUnembeddedNodes(): DecisionNode[] {
     return (this.db.prepare(`SELECT * FROM nodes WHERE embedding IS NULL ORDER BY created_at ASC`).all() as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
-    searchNodesFts(query: string, limit = 20): DecisionNode[] {
+  
+  searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
     // Join via rowid: the triggers pin nodes_fts.rowid == nodes.rowid so
@@ -208,11 +226,13 @@ export class CodeMemoryDatabase {
     return { totalDecisions: total, byType, byStatus, totalEdges, embeddingsReady };
   }
 
-    transaction<T>(fn: () => T): T {
+  
+  transaction<T>(fn: () => T): T {
     return this.db.transaction(fn)();
   }
 
-    close(): void {
+  
+  close(): void {
     this.db.pragma('wal_checkpoint(TRUNCATE)');
     this.db.close();
   }
