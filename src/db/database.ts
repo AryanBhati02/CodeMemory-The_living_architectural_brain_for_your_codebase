@@ -1,7 +1,10 @@
+
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { DecisionNode, DecisionEdge, GraphStats, DecisionType, DecisionStatus } from '../graph/types';
+
+
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -42,6 +45,9 @@ CREATE INDEX IF NOT EXISTS idx_nodes_has_emb ON nodes(id) WHERE embedding IS NOT
 CREATE INDEX IF NOT EXISTS idx_edges_from    ON edges(from_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to      ON edges(to_id);
 
+-- Contentless FTS5: text is indexed but not stored (smaller DB).
+-- rowid is pinned to nodes.rowid so MATCH queries can join back via rowid.
+-- contentless_delete=1 enables rowid-based DELETE on the contentless table.
 CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
   id UNINDEXED, title, rationale, tags,
   content='', contentless_delete=1
@@ -93,7 +99,9 @@ export class CodeMemoryDatabase {
     if (!v) this.db.prepare("INSERT INTO schema_meta(key,value) VALUES('version',?)").run(SCHEMA_VERSION);
   }
 
-  insertNode(node: DecisionNode): void {
+
+
+      insertNode(node: DecisionNode): void {
     this.db.prepare(`
       INSERT INTO nodes (id,type,payload,embedding,created_at,updated_at,author_name,author_email)
       VALUES (?,?,?,?,?,?,?,?)
@@ -104,34 +112,37 @@ export class CodeMemoryDatabase {
     );
   }
 
-  updateNode(id: string, payload: DecisionNode['payload'], updatedAt: string): void {
+    updateNode(id: string, payload: DecisionNode['payload'], updatedAt: string): void {
     this.db.prepare(`UPDATE nodes SET payload=?,updated_at=? WHERE id=?`).run(JSON.stringify(payload), updatedAt, id);
   }
 
-  updateNodeEmbedding(id: string, embedding: Float32Array): void {
+    updateNodeEmbedding(id: string, embedding: Float32Array): void {
     this.db.prepare(`UPDATE nodes SET embedding=? WHERE id=?`).run(Buffer.from(embedding.buffer), id);
   }
 
-  deleteNode(id: string): void {
+    deleteNode(id: string): void {
     this.db.prepare(`DELETE FROM nodes WHERE id=?`).run(id);
   }
 
-  getNodeById(id: string): DecisionNode | undefined {
+    getNodeById(id: string): DecisionNode | undefined {
     const row = this.db.prepare(`SELECT * FROM nodes WHERE id=?`).get(id) as NodeRow | undefined;
     return row ? this._deserializeNode(row) : undefined;
   }
 
-  getAllNodes(): DecisionNode[] {
+    getAllNodes(): DecisionNode[] {
     return (this.db.prepare(`SELECT * FROM nodes ORDER BY updated_at DESC`).all() as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
-  getUnembeddedNodes(): DecisionNode[] {
+    getUnembeddedNodes(): DecisionNode[] {
     return (this.db.prepare(`SELECT * FROM nodes WHERE embedding IS NULL ORDER BY created_at ASC`).all() as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
-  searchNodesFts(query: string, limit = 20): DecisionNode[] {
+    searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
+
+
+
     return (this.db.prepare(`
       SELECT * FROM nodes WHERE rowid IN (
         SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH ?
@@ -139,16 +150,21 @@ export class CodeMemoryDatabase {
     `).all(`${safe}*`, limit) as NodeRow[]).map(r => this._deserializeNode(r));
   }
 
+
   getEmbeddedNodes(): Array<{ id: string; embedding: Float32Array }> {
     return (this.db.prepare(`SELECT id,embedding FROM nodes WHERE embedding IS NOT NULL`).all() as Array<{ id: string; embedding: Buffer }>)
       .map(r => ({ id: r.id, embedding: new Float32Array(r.embedding.buffer) }));
   }
+
 
   getNodesByIds(ids: string[]): DecisionNode[] {
     if (!ids.length) return [];
     const ph = ids.map(() => '?').join(',');
     return (this.db.prepare(`SELECT * FROM nodes WHERE id IN (${ph})`).all(...ids) as NodeRow[]).map(r => this._deserializeNode(r));
   }
+
+
+
 
   insertEdge(edge: DecisionEdge): void {
     this.db.prepare(`
@@ -157,17 +173,23 @@ export class CodeMemoryDatabase {
     `).run(edge.id, edge.fromId, edge.toId, edge.relationType, edge.weight, edge.createdAt, edge.note ?? null);
   }
 
+
   deleteEdge(id: string): void {
     this.db.prepare(`DELETE FROM edges WHERE id=?`).run(id);
   }
+
 
   getEdgesForNode(nodeId: string): DecisionEdge[] {
     return (this.db.prepare(`SELECT * FROM edges WHERE from_id=? OR to_id=?`).all(nodeId, nodeId) as EdgeRow[]).map(r => this._deserializeEdge(r));
   }
 
+
   getAllEdges(): DecisionEdge[] {
     return (this.db.prepare(`SELECT * FROM edges`).all() as EdgeRow[]).map(r => this._deserializeEdge(r));
   }
+
+
+
 
   getStats(): GraphStats {
     const total          = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes`).get() as CountRow).c;
@@ -186,11 +208,11 @@ export class CodeMemoryDatabase {
     return { totalDecisions: total, byType, byStatus, totalEdges, embeddingsReady };
   }
 
-  transaction<T>(fn: () => T): T {
+    transaction<T>(fn: () => T): T {
     return this.db.transaction(fn)();
   }
 
-  close(): void {
+    close(): void {
     this.db.pragma('wal_checkpoint(TRUNCATE)');
     this.db.close();
   }

@@ -1,3 +1,4 @@
+
 import OpenAI from 'openai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -21,7 +22,7 @@ export class OpenAIProvider implements IAIProvider {
     availableModels: ['gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4-turbo'],
   };
 
-  validateKey(apiKey: string): { valid: boolean; reason?: string } {
+    validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey?.startsWith('sk-')) {
       return { valid: false, reason: 'OpenAI keys begin with "sk-".' };
     }
@@ -31,7 +32,7 @@ export class OpenAIProvider implements IAIProvider {
     return { valid: true };
   }
 
-  async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
+    async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new OpenAI({ apiKey });
     const t0 = Date.now();
 
@@ -64,6 +65,7 @@ export class OpenAIProvider implements IAIProvider {
     }
   }
 
+  
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new OpenAI({ apiKey });
     const t0 = Date.now();
@@ -94,7 +96,7 @@ export class OpenAIProvider implements IAIProvider {
 
       return {
         content: fullContent,
-        usage: { inputTokens: 0, outputTokens: 0 },
+        usage: { inputTokens: 0, outputTokens: 0 }, 
         fromCache: false,
         providerId: this.id,
         latencyMs: Date.now() - t0,

@@ -1,6 +1,9 @@
+
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { CodeMemoryDatabase } from '../src/db/database';
 import type { DecisionNode, DecisionEdge } from '../src/graph/types';
+
+
 
 function makeNode(id: string, payloadOverrides: Partial<DecisionNode['payload']> = {}): DecisionNode {
   return {
@@ -23,6 +26,8 @@ function makeNode(id: string, payloadOverrides: Partial<DecisionNode['payload']>
   };
 }
 
+
+
 describe('CodeMemoryDatabase', () => {
   let db: CodeMemoryDatabase;
 
@@ -34,7 +39,9 @@ describe('CodeMemoryDatabase', () => {
     db.close();
   });
 
-  it('insertNode stores payload as JSON and retrieves it correctly', () => {
+
+
+    it('insertNode stores payload as JSON and retrieves it correctly', () => {
     db.insertNode(makeNode('n1'));
     const node = db.getNodeById('n1');
     expect(node).toBeDefined();
@@ -52,7 +59,9 @@ describe('CodeMemoryDatabase', () => {
     expect(db.getNodeById('ghost-id')).toBeUndefined();
   });
 
-  it('updateNodeEmbedding stores a Float32Array blob and round-trips all values correctly', () => {
+
+
+    it('updateNodeEmbedding stores a Float32Array blob and round-trips all values correctly', () => {
     db.insertNode(makeNode('n1'));
     const embedding = new Float32Array([0.1, 0.25, 0.5, 0.75]);
     db.updateNodeEmbedding('n1', embedding);
@@ -66,9 +75,12 @@ describe('CodeMemoryDatabase', () => {
     expect(node!.embedding![3]).toBeCloseTo(0.75);
   });
 
-  it('searchNodesFts returns nodes whose title matches the query and excludes non-matching nodes', () => {
+
+
+    it('searchNodesFts returns nodes whose title matches the query and excludes non-matching nodes', () => {
     db.insertNode(makeNode('sqlite-node', { title: 'Use SQLite for local persistence' }));
-    db.insertNode(makeNode('redis-node',  { title: 'Use Redis for caching', rationale: 'Fast in-memory store.', tags: [] }));
+
+        db.insertNode(makeNode('redis-node',  { title: 'Use Redis for caching', rationale: 'Fast in-memory store.', tags: [] }));
     const results = db.searchNodesFts('SQLite');
     expect(results.some(n => n.id === 'sqlite-node')).toBe(true);
     expect(results.some(n => n.id === 'redis-node')).toBe(false);
@@ -84,7 +96,9 @@ describe('CodeMemoryDatabase', () => {
     expect(() => db.searchNodesFts('"exact phrase"')).not.toThrow();
   });
 
-  it('deleteNode cascades and removes all associated edges (foreign key enforcement)', () => {
+
+
+    it('deleteNode cascades and removes all associated edges (foreign key enforcement)', () => {
     db.insertNode(makeNode('node-a'));
     db.insertNode(makeNode('node-b'));
     const edge: DecisionEdge = {
@@ -112,7 +126,9 @@ describe('CodeMemoryDatabase', () => {
     expect(db.getAllEdges()).toHaveLength(0);
   });
 
-  it('getStats returns correct totalDecisions count and byType breakdown', () => {
+
+
+    it('getStats returns correct totalDecisions count and byType breakdown', () => {
     db.insertNode(makeNode('n1', { type: 'constraint' }));
     db.insertNode(makeNode('n2', { type: 'pattern' }));
     db.insertNode(makeNode('n3', { type: 'pattern' }));
@@ -133,7 +149,9 @@ describe('CodeMemoryDatabase', () => {
     expect(db.getStats().totalEdges).toBe(1);
   });
 
-  it('getUnembeddedNodes returns only nodes where embedding is null', () => {
+
+
+    it('getUnembeddedNodes returns only nodes where embedding is null', () => {
     db.insertNode(makeNode('has-embedding'));
     db.insertNode(makeNode('needs-embedding'));
     db.updateNodeEmbedding('has-embedding', new Float32Array([0.1, 0.2]));

@@ -1,3 +1,4 @@
+
 import OpenAI from 'openai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -12,7 +13,7 @@ interface OpenAICompatConfig {
   availableModels?: string[];
   apiKeyUrl?: string;
   description?: string;
-  requiresApiKey?: boolean;
+    requiresApiKey?: boolean;
 }
 
 export class OpenAICompatProvider implements IAIProvider {

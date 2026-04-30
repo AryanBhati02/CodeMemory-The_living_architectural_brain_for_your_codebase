@@ -1,3 +1,4 @@
+
 import * as vscode from 'vscode';
 import {
   captureDecisionCommand,
@@ -15,6 +16,7 @@ import type { AIPipeline }         from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { ProviderDrawer }     from '../ui/ProviderDrawer';
 import type { TokenDashboardPanel } from '../ui/TokenDashboardPanel';
+import type { GraphPanel }          from '../ui/GraphPanel';
 
 export interface CommandDeps {
   context:         vscode.ExtensionContext;
@@ -24,6 +26,7 @@ export interface CommandDeps {
   providerDrawer:  ProviderDrawer;
   getTokenPanel:   () => TokenDashboardPanel | undefined;
   showTokenPanel:  () => void;
+  showGraphPanel:  () => void;
 }
 
 export function registerAllCommands(deps: CommandDeps): void {
@@ -67,6 +70,10 @@ export function registerAllCommands(deps: CommandDeps): void {
     [
       'codememory.openTokenDashboard',
       () => deps.showTokenPanel(),
+    ],
+    [
+      'codememory.openGraph',
+      () => deps.showGraphPanel(),
     ],
     [
       'codememory.refreshSidebar',

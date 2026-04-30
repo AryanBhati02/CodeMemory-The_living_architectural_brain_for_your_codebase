@@ -1,12 +1,15 @@
+
 import * as vscode from 'vscode';
 import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { TokenDashboardPanel as TDP } from '../ui/TokenDashboardPanel';
-import type { RelationType, DecisionType } from '../graph/types';
+import type { RelationType } from '../graph/types';
 
 interface DecisionTypeItem extends vscode.QuickPickItem { id: string }
 interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
+
+
 
 export async function captureDecisionCommand(
   decisionService: DecisionService,
@@ -48,7 +51,7 @@ export async function captureDecisionCommand(
       await decisionService.createDecision({
         title,
         rationale,
-        type: typeChoice.id as DecisionType,
+        type: typeChoice.id as any,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
         tags: [],
@@ -60,6 +63,8 @@ export async function captureDecisionCommand(
   treeProvider.refresh();
   vscode.window.showInformationMessage(`✓ Decision captured: "${title}"`);
 }
+
+
 
 export async function searchDecisionsCommand(
   decisionService: DecisionService
@@ -99,6 +104,8 @@ export async function searchDecisionsCommand(
   }
 }
 
+
+
 export async function askAICommand(
   pipeline: AIPipeline,
   decisionService: DecisionService
@@ -115,7 +122,8 @@ export async function askAICommand(
   const activeFile  = editor?.document.uri.fsPath;
   const decisions   = decisionService.getDecisions();
 
-  const panel = vscode.window.createWebviewPanel(
+
+    const panel = vscode.window.createWebviewPanel(
     'codememory.aiResponse',
     'CodeMemory: AI Response',
     vscode.ViewColumn.Beside,
@@ -186,6 +194,8 @@ function buildStreamingResponseHtml(query: string): string {
 </html>`;
 }
 
+
+
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
   if (!filePaths.length) return;
@@ -196,6 +206,8 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
 }
+
+
 
 export async function editDecisionCommand(
   decisionService: DecisionService,
@@ -243,11 +255,13 @@ export async function editDecisionCommand(
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
-    type:   typePick.id as DecisionType,
+    type:   typePick.id as any,
     status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
 }
+
+
 
 export async function deleteDecisionCommand(
   decisionService: DecisionService,
@@ -262,6 +276,8 @@ export async function deleteDecisionCommand(
   decisionService.deleteDecision(node.id);
   vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
 }
+
+
 
 export async function linkDecisionCommand(
   decisionService: DecisionService,
@@ -293,6 +309,8 @@ export async function linkDecisionCommand(
   );
 }
 
+
+
 export async function exportDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {
@@ -306,6 +324,8 @@ export async function exportDecisionsCommand(
   await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf-8'));
   vscode.window.showInformationMessage(`Exported ${decisions.length} decisions to ${uri.fsPath}`);
 }
+
+
 
 export async function importDecisionsCommand(
   decisionService: DecisionService

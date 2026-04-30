@@ -1,3 +1,4 @@
+
 import * as vscode from 'vscode';
 import { DecisionTreeItem } from './DecisionTreeItem';
 import type { DecisionNode, DecisionType } from '../graph/types';
@@ -31,23 +32,28 @@ export class DecisionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
   constructor(private readonly decisionService: DecisionService) {}
 
+
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
+
 
   setFilter(query: string): void {
     this.filterQuery = query.toLowerCase();
     this.refresh();
   }
 
+
   getTreeItem(element: TreeNode): vscode.TreeItem {
     return element;
   }
+
 
   getChildren(element?: TreeNode): TreeNode[] {
     if (element instanceof GroupTreeItem) {
       return element.children;
     }
+
 
     let decisions = this.decisionService.getDecisions();
 

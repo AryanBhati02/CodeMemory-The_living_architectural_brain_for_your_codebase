@@ -1,8 +1,10 @@
+
 import Anthropic from '@anthropic-ai/sdk';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
+
 
 interface ExtendedThinkingParams {
   thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
@@ -11,8 +13,10 @@ interface ExtendedThinkingParams {
 type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
 type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
 
+
 interface ThinkingBlock { type: 'thinking'; thinking: string }
 type ResponseBlock = Anthropic.ContentBlock | ThinkingBlock;
+
 
 interface AnthropicUsageWithCaching {
   input_tokens: number;
@@ -43,7 +47,7 @@ export class ClaudeProvider implements IAIProvider {
     ],
   };
 
-  validateKey(apiKey: string): { valid: boolean; reason?: string } {
+    validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey?.startsWith('sk-ant-')) {
       return { valid: false, reason: 'Anthropic keys begin with "sk-ant-".' };
     }
@@ -53,7 +57,7 @@ export class ClaudeProvider implements IAIProvider {
     return { valid: true };
   }
 
-  async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
+    async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
     const requestModel = options.model ?? this.capabilities.defaultModel;
@@ -62,7 +66,7 @@ export class ClaudeProvider implements IAIProvider {
       const systemContent: Anthropic.TextBlockParam = {
         type: 'text',
         text: options.systemPrompt,
-        cache_control: { type: 'ephemeral' },
+        cache_control: { type: 'ephemeral' }, 
       };
 
       const body: ExtendedMessageParams = {
@@ -81,11 +85,11 @@ export class ClaudeProvider implements IAIProvider {
           body.thinking    = { type: 'adaptive' } as any;
           body.output_config = { effort: 'high' } as any;
         } else {
-          body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
+          body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 } as any;
         }
       }
 
-      const msg = await client.messages.create(body as any);
+      const msg = await client.messages.create(body);
 
       let content = '';
       let thinking = '';
@@ -113,6 +117,7 @@ export class ClaudeProvider implements IAIProvider {
     }
   }
 
+  
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
@@ -141,11 +146,11 @@ export class ClaudeProvider implements IAIProvider {
           params.thinking      = { type: 'adaptive' } as any;
           params.output_config = { effort: 'high' } as any;
         } else {
-          params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
+          params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 } as any;
         }
       }
 
-      const stream = client.messages.stream(params as any);
+      const stream = client.messages.stream(params);
 
       let fullContent = '';
       for await (const event of stream) {

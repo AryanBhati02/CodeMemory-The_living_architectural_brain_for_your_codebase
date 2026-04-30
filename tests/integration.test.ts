@@ -1,5 +1,7 @@
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SemanticRanker } from '../src/search/SemanticRanker';
+
 
 vi.mock('vscode', () => ({
   EventEmitter: class {
@@ -16,6 +18,8 @@ import { PromptBuilder }    from '../src/ai/pipeline/PromptBuilder';
 import { AIProviderError }  from '../src/ai/providers/IAIProvider';
 import { validatePayload }  from '../src/decisions/decisionService';
 import type { DecisionNode } from '../src/graph/types';
+
+
 
 function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): DecisionNode {
   return {
@@ -37,6 +41,8 @@ function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): Decisio
     authorEmail: 'test@example.com',
   };
 }
+
+
 
 describe('ProviderManager', () => {
   beforeEach(() => ProviderManager.resetInstance());
@@ -70,12 +76,12 @@ describe('ProviderManager', () => {
     const pm = ProviderManager.getInstance();
     pm.setActiveProvider('openai');
     pm.unregister('claude');
-    expect(() => pm.unregister('openai')).toThrow();
+    expect(() => pm.unregister('openai')).toThrow(); 
   });
 
   it('validates claude key format', () => {
     const pm = ProviderManager.getInstance();
-    expect(pm.validateKey('claude', 'sk-ant-api03-' + 'x'.repeat(30)).valid).toBe(true);
+    expect(pm.validateKey('claude', 'sk-ant-api03-' + 'x'.repeat(30)).valid).toBe(true); 
     expect(pm.validateKey('claude', 'bad-key').valid).toBe(false);
     expect(pm.validateKey('claude', 'sk-ant-short').valid).toBe(false);
   });
@@ -99,6 +105,8 @@ describe('ProviderManager', () => {
     expect(a).toBe(b);
   });
 });
+
+
 
 describe('CacheEngine', () => {
   it('returns null on empty cache', () => {
@@ -134,8 +142,8 @@ describe('CacheEngine', () => {
   it('tracks hit rate correctly', () => {
     const cache = new CacheEngine(300);
     cache.set('h', 'claude', 'prompt');
-    cache.get('h', 'claude');
-    cache.get('h', 'openai');
+    cache.get('h', 'claude'); 
+    cache.get('h', 'openai'); 
     const stats = cache.getStats();
     expect(stats.hits).toBe(1);
     expect(stats.misses).toBe(1);
@@ -149,12 +157,15 @@ describe('CacheEngine', () => {
   });
 
   it('returns null after TTL expires', async () => {
-    const cache = new CacheEngine(0.001);
+
+        const cache = new CacheEngine(0.001);
     cache.set('hash1', 'claude', 'system prompt text');
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise(r => setTimeout(r, 20)); 
     expect(cache.get('hash1', 'claude')).toBeNull();
   });
 });
+
+
 
 describe('computeGraphHash', () => {
   it('same decisions produce same hash', () => {
@@ -172,6 +183,8 @@ describe('computeGraphHash', () => {
     expect(computeGraphHash([])).toBeTruthy();
   });
 });
+
+
 
 describe('PromptBuilder', () => {
   it('builds prompt containing decision title', () => {
@@ -208,7 +221,8 @@ describe('PromptBuilder', () => {
       makeDecision({ title: `Decision ${i}` })
     );
     const prompt = PromptBuilder.build({ decisions, maxDecisions: 5 });
-    const matches = (prompt.match(/Decision \d+/g) ?? []).length;
+
+        const matches = (prompt.match(/Decision \d+/g) ?? []).length;
     expect(matches).toBe(5);
   });
 
@@ -216,9 +230,11 @@ describe('PromptBuilder', () => {
     const d = makeDecision();
     const p1 = PromptBuilder.build({ decisions: [d] });
     const p2 = PromptBuilder.build({ decisions: [d] });
-    expect(p1).toBe(p2);
+    expect(p1).toBe(p2); 
   });
 });
+
+
 
 describe('AIProviderError', () => {
   it('constructs correctly', () => {
@@ -235,6 +251,8 @@ describe('AIProviderError', () => {
     expect(err.retryable).toBe(false);
   });
 });
+
+
 
 describe('validatePayload', () => {
   it('passes valid payload', () => {
@@ -268,6 +286,8 @@ describe('validatePayload', () => {
     expect(errors.some(e => e.field === 'title')).toBe(true);
   });
 });
+
+
 
 describe('SemanticRanker', () => {
   let ranker: SemanticRanker;
@@ -352,9 +372,11 @@ describe('SemanticRanker', () => {
   it('cosine handles zero vectors without throwing', () => {
     const zero = new Float32Array([0, 0, 0]);
     const v    = new Float32Array([1, 0, 0]);
-    expect(() => ranker.cosine(zero, v)).not.toThrow();
+
+        expect(() => ranker.cosine(zero, v)).not.toThrow();
     expect(() => ranker.cosine(v, zero)).not.toThrow();
     expect(() => ranker.cosine(zero, zero)).not.toThrow();
-    expect(Number.isFinite(ranker.cosine(zero, v))).toBe(true);
+
+        expect(Number.isFinite(ranker.cosine(zero, v))).toBe(true);
   });
 });

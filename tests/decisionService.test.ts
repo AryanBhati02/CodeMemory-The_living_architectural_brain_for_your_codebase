@@ -1,8 +1,13 @@
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+
 
 vi.mock('vscode', () => ({
   EventEmitter: class MockEventEmitter {
-    event = (_listener: Function) => ({ dispose: () => {} });
+
+
+            event = (_listener: Function) => ({ dispose: () => {} });
     fire(_data: unknown) {}
     dispose() {}
   },
@@ -15,12 +20,16 @@ import { DecisionService, validatePayload } from '../src/decisions/decisionServi
 import { CodeMemoryDatabase } from '../src/db/database';
 import type { EmbeddingQueue } from '../src/workers/embeddingQueue';
 
+
+
 function makeMockQueue(): Pick<EmbeddingQueue, 'enqueue' | 'onEmbeddingComplete'> {
   return {
     enqueue: vi.fn().mockResolvedValue(undefined),
     onEmbeddingComplete: (_listener: Function) => ({ dispose: () => {} }),
   };
 }
+
+
 
 describe('DecisionService', () => {
   let db: CodeMemoryDatabase;
@@ -36,7 +45,9 @@ describe('DecisionService', () => {
     db.close();
   });
 
-  it('createDecision rejects an empty title and throws a descriptive error', async () => {
+
+
+    it('createDecision rejects an empty title and throws a descriptive error', async () => {
     await expect(
       service.createDecision({ title: '', rationale: 'Some rationale', type: 'constraint' })
     ).rejects.toThrow(/title/i);
@@ -60,7 +71,9 @@ describe('DecisionService', () => {
     ).rejects.toThrow();
   });
 
-  it("createDecision sets payload.status to 'proposed' when no status is provided", async () => {
+
+
+    it("createDecision sets payload.status to 'proposed' when no status is provided", async () => {
     const node = await service.createDecision({
       title: 'Adopt monorepo layout',
       rationale: 'Single source of truth for shared utilities',
@@ -90,7 +103,9 @@ describe('DecisionService', () => {
     expect(fetched!.payload.title).toBe('Use dependency injection');
   });
 
-  it('updateDecision merges partial updates without overwriting untouched fields', async () => {
+
+
+    it('updateDecision merges partial updates without overwriting untouched fields', async () => {
     const created = await service.createDecision({
       title: 'Use React Query for server state',
       rationale: 'Reduces boilerplate and manages caching automatically',
@@ -125,7 +140,9 @@ describe('DecisionService', () => {
     ).rejects.toThrow(/not found/i);
   });
 
-  it("createEdge with SUPERSEDES relation updates the target node's status to 'superseded'", async () => {
+
+
+    it("createEdge with SUPERSEDES relation updates the target node's status to 'superseded'", async () => {
     const older = await service.createDecision({
       title: 'Use Redux for global state',
       rationale: 'Centralized state management',
@@ -181,7 +198,9 @@ describe('DecisionService', () => {
     expect(() => service.createEdge(nodeA.id, 'ghost-id', 'DEPENDS_ON')).toThrow(/not found/i);
   });
 
-  it('deleteDecision throws when the id does not exist', () => {
+
+
+    it('deleteDecision throws when the id does not exist', () => {
     expect(() => service.deleteDecision('completely-unknown-id')).toThrow(/not found/i);
   });
 
@@ -195,7 +214,9 @@ describe('DecisionService', () => {
     expect(db.getNodeById(node.id)).toBeUndefined();
   });
 
-  it('getDecisions with type filter returns only nodes matching that type', async () => {
+
+
+    it('getDecisions with type filter returns only nodes matching that type', async () => {
     await service.createDecision({ title: 'Constraint A', rationale: 'Rationale A', type: 'constraint' });
     await service.createDecision({ title: 'Pattern B',    rationale: 'Rationale B', type: 'pattern' });
     await service.createDecision({ title: 'Pattern C',    rationale: 'Rationale C', type: 'pattern' });
@@ -217,7 +238,7 @@ describe('DecisionService', () => {
   });
 
   it('getDecisions with status filter returns only nodes matching that status', async () => {
-    await service.createDecision({ title: 'Proposed', rationale: 'R', type: 'why' });
+    await service.createDecision({ title: 'Proposed', rationale: 'R', type: 'why' }); 
     await service.createDecision({ title: 'Accepted', rationale: 'R', type: 'why', status: 'accepted' });
 
     const proposed = service.getDecisions({ status: 'proposed' });
