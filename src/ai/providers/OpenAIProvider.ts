@@ -1,4 +1,3 @@
-
 import OpenAI from 'openai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -60,7 +59,7 @@ export class OpenAIProvider implements IAIProvider {
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
@@ -95,21 +94,22 @@ export class OpenAIProvider implements IAIProvider {
 
       return {
         content: fullContent,
-        usage: { inputTokens: 0, outputTokens: 0 }, // stream doesn't return usage in all versions
+        usage: { inputTokens: 0, outputTokens: 0 },
         fromCache: false,
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
 
-  private _normalizeError(err: any): AIProviderError {
-    const status = err.status ?? err.statusCode;
+  private _normalizeError(err: unknown): AIProviderError {
+    const e = err as { status?: number; statusCode?: number; message?: string };
+    const status = e.status ?? e.statusCode;
     if (status === 401) return new AIProviderError('Invalid OpenAI API key.', 'AUTH_ERROR', this.id, false, 401);
     if (status === 429) return new AIProviderError('OpenAI rate limit hit.', 'RATE_LIMIT', this.id, true, 429);
-    if (status === 400) return new AIProviderError(err.message, 'CONTEXT_TOO_LONG', this.id, false, 400);
-    return new AIProviderError(err.message ?? 'Unknown error', 'PROVIDER_ERROR', this.id, false, status);
+    if (status === 400) return new AIProviderError(e.message ?? 'Bad request', 'CONTEXT_TOO_LONG', this.id, false, 400);
+    return new AIProviderError(e.message ?? 'Unknown error', 'PROVIDER_ERROR', this.id, false, status);
   }
 }

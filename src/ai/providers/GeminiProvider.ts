@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -76,7 +75,7 @@ export class GeminiProvider implements IAIProvider {
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
@@ -123,13 +122,13 @@ export class GeminiProvider implements IAIProvider {
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
 
-  private _normalizeError(err: any): AIProviderError {
-    const msg = err.message ?? 'Unknown error';
+  private _normalizeError(err: unknown): AIProviderError {
+    const msg = (err as { message?: string }).message ?? 'Unknown error';
     if (msg.includes('API_KEY') || msg.includes('401')) return new AIProviderError('Invalid Gemini API key.', 'AUTH_ERROR', this.id, false, 401);
     if (msg.includes('429') || msg.includes('quota')) return new AIProviderError('Gemini quota exceeded.', 'RATE_LIMIT', this.id, true, 429);
     return new AIProviderError(msg, 'PROVIDER_ERROR', this.id, false);

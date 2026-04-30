@@ -1,4 +1,3 @@
-
 import { ProviderManager } from '../providers/ProviderManager';
 import { CacheEngine, computeGraphHash } from '../cache/CacheEngine';
 import { PromptBuilder } from './PromptBuilder';
@@ -6,8 +5,6 @@ import { SecretStorageService } from '../../storage/secretStorage';
 import { SettingsManager } from '../../settings/SettingsManager';
 import { DecisionNode } from '../../graph/types';
 import { AIResponse, AIStreamCallback, AIProviderError, AIMessage } from '../providers/IAIProvider';
-
-
 
 export interface QueryOptions {
   query: string;
@@ -39,21 +36,17 @@ export interface SessionStats {
   activeProviderId: string;
 }
 
-
 const COST_PER_M: Record<string, { input: number; output: number; cacheRead: number }> = {
   claude:  { input: 3.00,  output: 15.00, cacheRead: 0.30  },
   openai:  { input: 2.50,  output: 10.00, cacheRead: 2.50  },
   gemini:  { input: 3.50,  output: 10.50, cacheRead: 3.50  },
 };
 
-
-
 export class AIPipeline {
   private readonly cache: CacheEngine;
   private readonly providerManager: ProviderManager;
   private readonly secrets: SecretStorageService;
 
-  
   private stats = {
     totalInputTokens: 0,
     totalOutputTokens: 0,
@@ -71,13 +64,10 @@ export class AIPipeline {
     this.cache = new CacheEngine(config.cacheTtlSeconds);
   }
 
-  
-
   async query(options: QueryOptions): Promise<PipelineResult> {
     const { query, decisions, activeFilePath, codeContext, history = [], stream, onChunk, signal } = options;
     const config = SettingsManager.get();
 
-    
     const providerId = this.providerManager.getActiveProviderId();
     const graphHash = computeGraphHash(decisions);
     let systemPrompt = this.cache.get(graphHash, providerId);
@@ -93,7 +83,6 @@ export class AIPipeline {
       this.cache.set(graphHash, providerId, systemPrompt);
     }
 
-    
     const apiKey = await this.secrets.getKey(providerId);
     if (!apiKey) {
       throw new Error(
@@ -101,11 +90,9 @@ export class AIPipeline {
       );
     }
 
-    
     const provider = this.providerManager.getActiveProvider();
     const selectedModel = this.secrets.getSelectedModel(providerId) ?? provider.capabilities.defaultModel;
 
-    
     const messages: AIMessage[] = [
       ...history,
       { role: 'user', content: query },
@@ -121,7 +108,6 @@ export class AIPipeline {
       model: selectedModel,
     };
 
-    
     let response: AIResponse;
     if (stream && onChunk) {
       response = await this._dispatchWithRetry(() =>
@@ -133,7 +119,6 @@ export class AIPipeline {
       );
     }
 
-    
     this._accumulateStats(response);
 
     return {
@@ -144,13 +129,9 @@ export class AIPipeline {
     };
   }
 
-  
-
   invalidateCache(reason: string): void {
     this.cache.invalidate(reason);
   }
-
-  
 
   getSessionStats(): SessionStats {
     return {
@@ -172,8 +153,6 @@ export class AIPipeline {
     };
   }
 
-  
-
   private async _dispatchWithRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
     let lastError: Error | undefined;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -182,7 +161,7 @@ export class AIPipeline {
       } catch (err) {
         if (err instanceof AIProviderError && err.retryable && attempt < maxRetries) {
           lastError = err;
-          await this._sleep(1000 * Math.pow(2, attempt)); 
+          await this._sleep(1000 * Math.pow(2, attempt));
           continue;
         }
         throw err;

@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import type { CodeMemoryDatabase } from '../db/database';
@@ -8,8 +7,6 @@ import type {
   DecisionFilter, GraphStats, GraphChangeEvent, RelationType,
 } from '../graph/types';
 import { SemanticRanker } from '../search/SemanticRanker';
-
-
 
 async function resolveAuthor(): Promise<{ name: string; email: string }> {
   try {
@@ -28,8 +25,6 @@ function generateEdgeId(fromId: string, rel: RelationType, toId: string): string
   return `${fromId}::${rel}::${toId}`;
 }
 
-
-
 export interface ValidationError { field: string; message: string; }
 
 export function validatePayload(p: Partial<DecisionPayload>): ValidationError[] {
@@ -40,8 +35,6 @@ export function validatePayload(p: Partial<DecisionPayload>): ValidationError[] 
   if (!p.type)              errors.push({ field: 'type',      message: 'Decision type is required.' });
   return errors;
 }
-
-
 
 export class DecisionService implements vscode.Disposable {
   private readonly _onGraphChange = new vscode.EventEmitter<GraphChangeEvent>();
@@ -58,10 +51,8 @@ export class DecisionService implements vscode.Disposable {
     });
   }
 
-  
-
   async createDecision(
-    partial: Omit<DecisionPayload, 'status'> & { status?: DecisionPayload['status'] }
+    partial: Omit<DecisionPayload, 'status' | 'filePaths' | 'tags'> & { status?: DecisionPayload['status']; filePaths?: string[]; tags?: string[] }
   ): Promise<DecisionNode> {
     const errors = validatePayload(partial);
     if (errors.length) throw new Error(`Invalid decision: ${errors.map(e => e.message).join(', ')}`);
@@ -151,12 +142,10 @@ export class DecisionService implements vscode.Disposable {
       const queryVec = await this.embeddingQueue.embedText(query);
       semanticIds = this.ranker.rank(queryVec, 20).map(r => r.id);
     } catch {
-      
     }
 
     const keywordIds = this.db.searchNodesFts(query, 20).map(n => n.id);
 
-    
     const scores = new Map<string, number>();
     semanticIds.forEach((id, i) => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
     keywordIds.forEach((id, i)  => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
@@ -168,8 +157,6 @@ export class DecisionService implements vscode.Disposable {
 
     return this.db.getNodesByIds(rankedIds);
   }
-
-  
 
   createEdge(
     fromId: string, toId: string, relationType: RelationType,
@@ -225,8 +212,6 @@ export class DecisionService implements vscode.Disposable {
     for (const node of nodes) this._enqueueEmbedding(node.id, node.payload);
     this._emitChange('insert', 'batch-import');
   }
-
-  
 
   private _emitChange(kind: GraphChangeEvent['kind'], nodeId: string): void {
     this._onGraphChange.fire({ kind, nodeId, timestamp: Date.now() });

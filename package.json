@@ -80,6 +80,16 @@
         "command": "codememory.linkDecision",
         "title": "Link to...",
         "category": "CodeMemory"
+      },
+      {
+        "command": "codememory.exportDecisions",
+        "title": "Export Decisions to JSON",
+        "category": "CodeMemory"
+      },
+      {
+        "command": "codememory.importDecisions",
+        "title": "Import Decisions from JSON",
+        "category": "CodeMemory"
       }
     ],
     "menus": {
@@ -115,6 +125,11 @@
         },
         {
           "command": "codememory.captureDecision",
+          "group": "navigation",
+          "when": "view == codememory.decisionsTree"
+        },
+        {
+          "command": "codememory.exportDecisions",
           "group": "navigation",
           "when": "view == codememory.decisionsTree"
         }

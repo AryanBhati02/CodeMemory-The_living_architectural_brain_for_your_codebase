@@ -1,4 +1,3 @@
-
 import { IAIProvider, AIProviderError } from './IAIProvider';
 import { ClaudeProvider } from './ClaudeProvider';
 import { OpenAIProvider } from './OpenAIProvider';
@@ -12,8 +11,6 @@ export class ProviderManager {
   private readonly providers = new Map<string, IAIProvider>();
   private activeProviderId = 'claude';
 
-  
-
   static getInstance(): ProviderManager {
     if (!ProviderManager.instance) {
       ProviderManager.instance = new ProviderManager();
@@ -22,11 +19,9 @@ export class ProviderManager {
     return ProviderManager.instance;
   }
 
-    static resetInstance(): void {
+  static resetInstance(): void {
     ProviderManager.instance = undefined;
   }
-
-  
 
   register(provider: IAIProvider): void {
     this.providers.set(provider.id, provider);
@@ -38,8 +33,6 @@ export class ProviderManager {
     }
     this.providers.delete(providerId);
   }
-
-  
 
   setActiveProvider(providerId: string): void {
     if (!this.providers.has(providerId)) {
@@ -80,8 +73,6 @@ export class ProviderManager {
     if (!provider) return { valid: false, reason: `Unknown provider "${providerId}".` };
     return provider.validateKey(apiKey);
   }
-
-  
 
   private _registerDefaults(): void {
     this.register(new ClaudeProvider());

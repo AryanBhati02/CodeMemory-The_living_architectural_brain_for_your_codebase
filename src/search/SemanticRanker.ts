@@ -6,7 +6,7 @@ export class SemanticRanker {
   }
 
   rank(queryVec: Float32Array, topK = 10): Array<{ id: string; score: number }> {
-    if (!this.index.length || !queryVec) return [];
+    if (!this.index.length || !queryVec || !queryVec.length) return [];
     return this.index
       .map(entry => ({ id: entry.id, score: this.cosine(queryVec, entry.vec) }))
       .sort((a, b) => b.score - a.score)

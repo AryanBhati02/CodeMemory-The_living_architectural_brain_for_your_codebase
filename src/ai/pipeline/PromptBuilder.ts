@@ -1,4 +1,3 @@
-
 import { DecisionNode } from '../../graph/types';
 
 export interface PromptBuildOptions {
@@ -24,7 +23,7 @@ Behavioral rules:
 5. When identifying a violation, name the specific decision being violated.`;
 
 export class PromptBuilder {
-    static build(options: PromptBuildOptions): string {
+  static build(options: PromptBuildOptions): string {
     const { decisions, maxDecisions = 20, activeFilePath, codeContext } = options;
     const sliced = decisions.slice(0, maxDecisions);
 

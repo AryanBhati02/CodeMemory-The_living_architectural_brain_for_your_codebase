@@ -1,9 +1,25 @@
-
 import Anthropic from '@anthropic-ai/sdk';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
+
+interface ExtendedThinkingParams {
+  thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
+  output_config?: { effort: 'high' };
+}
+type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
+type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
+
+interface ThinkingBlock { type: 'thinking'; thinking: string }
+type ResponseBlock = Anthropic.ContentBlock | ThinkingBlock;
+
+interface AnthropicUsageWithCaching {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
 
 export class ClaudeProvider implements IAIProvider {
   readonly id = 'claude';
@@ -43,16 +59,16 @@ export class ClaudeProvider implements IAIProvider {
     const requestModel = options.model ?? this.capabilities.defaultModel;
 
     try {
-      const systemContent: Anthropic.TextBlockParam & { cache_control?: { type: 'ephemeral' } } = {
+      const systemContent: Anthropic.TextBlockParam = {
         type: 'text',
         text: options.systemPrompt,
-        cache_control: { type: 'ephemeral' }, 
+        cache_control: { type: 'ephemeral' },
       };
 
-      const body: Anthropic.MessageCreateParamsNonStreaming = {
+      const body: ExtendedMessageParams = {
         model: requestModel,
         max_tokens: options.maxTokens ?? 2048,
-        system: [systemContent as any],
+        system: [systemContent],
         messages: options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       };
 
@@ -62,23 +78,23 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          (body as any).thinking = { type: 'adaptive' };
-          (body as any).output_config = { effort: 'high' };
+          body.thinking    = { type: 'adaptive' } as any;
+          body.output_config = { effort: 'high' } as any;
         } else {
-          (body as any).thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
+          body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
         }
       }
 
-      const msg = await client.messages.create(body);
+      const msg = await client.messages.create(body as any);
 
       let content = '';
       let thinking = '';
-      for (const block of msg.content) {
-        if (block.type === 'text') content += block.text;
-        if ((block as any).type === 'thinking') thinking += (block as any).thinking ?? '';
+      for (const block of msg.content as ResponseBlock[]) {
+        if (block.type === 'text')     content  += block.text;
+        if (block.type === 'thinking') thinking += block.thinking ?? '';
       }
 
-      const usage = msg.usage as any;
+      const usage = msg.usage as AnthropicUsageWithCaching;
       return {
         content,
         thinking: thinking || undefined,
@@ -86,13 +102,13 @@ export class ClaudeProvider implements IAIProvider {
           inputTokens: usage.input_tokens,
           outputTokens: usage.output_tokens,
           cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
-          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+          cacheReadTokens:  usage.cache_read_input_tokens  ?? 0,
         },
         fromCache: (usage.cache_read_input_tokens ?? 0) > 0,
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
@@ -103,12 +119,16 @@ export class ClaudeProvider implements IAIProvider {
     const requestModel = options.model ?? this.capabilities.defaultModel;
 
     try {
-      const systemContent = { type: 'text', text: options.systemPrompt, cache_control: { type: 'ephemeral' } };
+      const systemContent: Anthropic.TextBlockParam = {
+        type: 'text',
+        text: options.systemPrompt,
+        cache_control: { type: 'ephemeral' },
+      };
 
-      const params: any = {
+      const params: ExtendedStreamParams = {
         model: requestModel,
         max_tokens: options.maxTokens ?? 2048,
-        system: [systemContent as any],
+        system: [systemContent],
         messages: options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       };
 
@@ -118,40 +138,40 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          params.thinking = { type: 'adaptive' };
-          params.output_config = { effort: 'high' };
+          params.thinking      = { type: 'adaptive' } as any;
+          params.output_config = { effort: 'high' } as any;
         } else {
           params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
         }
       }
 
-      const stream = client.messages.stream(params);
+      const stream = client.messages.stream(params as any);
 
       let fullContent = '';
       for await (const event of stream) {
-        if (event.type === 'content_block_delta' && (event.delta as any).type === 'text_delta') {
-          const delta = (event.delta as any).text ?? '';
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          const delta = event.delta.text;
           fullContent += delta;
           onChunk({ delta, done: false });
         }
       }
       onChunk({ delta: '', done: true });
 
-      const msg = await stream.finalMessage();
-      const usage = msg.usage as any;
+      const msg   = await stream.finalMessage();
+      const usage = msg.usage as AnthropicUsageWithCaching;
       return {
         content: fullContent,
         usage: {
           inputTokens: usage.input_tokens,
           outputTokens: usage.output_tokens,
           cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
-          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+          cacheReadTokens:  usage.cache_read_input_tokens  ?? 0,
         },
         fromCache: (usage.cache_read_input_tokens ?? 0) > 0,
         providerId: this.id,
         latencyMs: Date.now() - t0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw this._normalizeError(err);
     }
   }
@@ -160,11 +180,12 @@ export class ClaudeProvider implements IAIProvider {
     return model.includes('opus-4-7');
   }
 
-  private _normalizeError(err: any): AIProviderError {
-    const status = err.status ?? err.statusCode;
+  private _normalizeError(err: unknown): AIProviderError {
+    const e = err as { status?: number; statusCode?: number; message?: string };
+    const status = e.status ?? e.statusCode;
     if (status === 401) return new AIProviderError('Invalid Anthropic API key.', 'AUTH_ERROR', this.id, false, 401);
     if (status === 429) return new AIProviderError('Anthropic rate limit hit.', 'RATE_LIMIT', this.id, true, 429);
-    if (status === 400 && err.message?.includes('context')) return new AIProviderError('Context too long.', 'CONTEXT_TOO_LONG', this.id, false, 400);
-    return new AIProviderError(err.message ?? 'Unknown error', 'PROVIDER_ERROR', this.id, false, status);
+    if (status === 400 && e.message?.includes('context')) return new AIProviderError('Context too long.', 'CONTEXT_TOO_LONG', this.id, false, 400);
+    return new AIProviderError(e.message ?? 'Unknown error', 'PROVIDER_ERROR', this.id, false, status);
   }
 }

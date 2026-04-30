@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import {
   captureDecisionCommand,
@@ -8,6 +7,8 @@ import {
   editDecisionCommand,
   deleteDecisionCommand,
   linkDecisionCommand,
+  exportDecisionsCommand,
+  importDecisionsCommand,
 } from './index';
 import type { DecisionService }    from '../decisions/decisionService';
 import type { AIPipeline }         from '../ai/pipeline/AIPipeline';
@@ -86,6 +87,14 @@ export function registerAllCommands(deps: CommandDeps): void {
     [
       'codememory.linkDecision',
       (node: any) => linkDecisionCommand(decisionService, node),
+    ],
+    [
+      'codememory.exportDecisions',
+      () => exportDecisionsCommand(decisionService),
+    ],
+    [
+      'codememory.importDecisions',
+      () => importDecisionsCommand(decisionService),
     ],
   ];
 

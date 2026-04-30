@@ -1,10 +1,7 @@
-
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { DecisionNode, DecisionEdge, GraphStats, DecisionType, DecisionStatus } from '../graph/types';
-
-
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -45,9 +42,6 @@ CREATE INDEX IF NOT EXISTS idx_nodes_has_emb ON nodes(id) WHERE embedding IS NOT
 CREATE INDEX IF NOT EXISTS idx_edges_from    ON edges(from_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to      ON edges(to_id);
 
--- Contentless FTS5: text is indexed but not stored (smaller DB).
--- rowid is pinned to nodes.rowid so MATCH queries can join back via rowid.
--- contentless_delete=1 enables rowid-based DELETE on the contentless table.
 CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
   id UNINDEXED, title, rationale, tags,
   content='', contentless_delete=1
@@ -79,6 +73,9 @@ interface EdgeRow {
   id: string; from_id: string; to_id: string; relation_type: string;
   weight: number; created_at: string; note: string | null;
 }
+interface CountRow { c: number }
+interface TypeGroupRow  { t: string; c: number }
+interface StatusGroupRow { s: string; c: number }
 
 export class CodeMemoryDatabase {
   private readonly db: Database.Database;
@@ -95,8 +92,6 @@ export class CodeMemoryDatabase {
     const v = this.db.prepare("SELECT value FROM schema_meta WHERE key='version'").get() as { value: string } | undefined;
     if (!v) this.db.prepare("INSERT INTO schema_meta(key,value) VALUES('version',?)").run(SCHEMA_VERSION);
   }
-
-  
 
   insertNode(node: DecisionNode): void {
     this.db.prepare(`
@@ -137,9 +132,6 @@ export class CodeMemoryDatabase {
   searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
-    // Join via rowid: the triggers pin nodes_fts.rowid == nodes.rowid so
-    // MATCH results (which expose rowid reliably on contentless FTS5 tables)
-    // map directly back to the nodes table.
     return (this.db.prepare(`
       SELECT * FROM nodes WHERE rowid IN (
         SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH ?
@@ -157,8 +149,6 @@ export class CodeMemoryDatabase {
     const ph = ids.map(() => '?').join(',');
     return (this.db.prepare(`SELECT * FROM nodes WHERE id IN (${ph})`).all(...ids) as NodeRow[]).map(r => this._deserializeNode(r));
   }
-
-  // ─── Edge CRUD ────────────────────────────────────────────────────────────
 
   insertEdge(edge: DecisionEdge): void {
     this.db.prepare(`
@@ -179,15 +169,13 @@ export class CodeMemoryDatabase {
     return (this.db.prepare(`SELECT * FROM edges`).all() as EdgeRow[]).map(r => this._deserializeEdge(r));
   }
 
-  // ─── Stats ────────────────────────────────────────────────────────────────
-
   getStats(): GraphStats {
-    const total = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes`).get() as any).c;
-    const totalEdges = (this.db.prepare(`SELECT COUNT(*) as c FROM edges`).get() as any).c;
-    const embeddingsReady = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes WHERE embedding IS NOT NULL`).get() as any).c;
+    const total          = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes`).get() as CountRow).c;
+    const totalEdges     = (this.db.prepare(`SELECT COUNT(*) as c FROM edges`).get() as CountRow).c;
+    const embeddingsReady = (this.db.prepare(`SELECT COUNT(*) as c FROM nodes WHERE embedding IS NOT NULL`).get() as CountRow).c;
 
-    const typeRows = this.db.prepare(`SELECT json_extract(payload,'$.type') as t, COUNT(*) as c FROM nodes GROUP BY t`).all() as any[];
-    const statusRows = this.db.prepare(`SELECT json_extract(payload,'$.status') as s, COUNT(*) as c FROM nodes GROUP BY s`).all() as any[];
+    const typeRows   = this.db.prepare(`SELECT json_extract(payload,'$.type') as t, COUNT(*) as c FROM nodes GROUP BY t`).all() as TypeGroupRow[];
+    const statusRows = this.db.prepare(`SELECT json_extract(payload,'$.status') as s, COUNT(*) as c FROM nodes GROUP BY s`).all() as StatusGroupRow[];
 
     const byType: Record<DecisionType, number> = { pattern: 0, constraint: 0, convention: 0, why: 0 };
     for (const r of typeRows) if (r.t in byType) byType[r.t as DecisionType] = r.c;

@@ -1,4 +1,3 @@
-
 import { createHash } from 'crypto';
 import { DecisionNode } from '../../graph/types';
 
@@ -28,7 +27,7 @@ export function computeGraphHash(decisions: DecisionNode[]): string {
 
 export class CacheEngine {
   private entry: CacheEntry | null = null;
-  private readonly ttlMs: number;
+  private ttlMs: number;
 
   private hits = 0;
   private misses = 0;
@@ -39,7 +38,7 @@ export class CacheEngine {
     this.ttlMs = ttlSeconds * 1000;
   }
 
-    get(graphHash: string, providerId: string): string | null {
+  get(graphHash: string, providerId: string): string | null {
     if (!this.entry) { this.misses++; return null; }
 
     const expired = Date.now() > this.entry.createdAt + this.entry.ttlMs;
@@ -55,11 +54,11 @@ export class CacheEngine {
     return this.entry.systemPrompt;
   }
 
-    set(graphHash: string, providerId: string, systemPrompt: string): void {
+  set(graphHash: string, providerId: string, systemPrompt: string): void {
     this.entry = { systemPrompt, graphHash, providerId, createdAt: Date.now(), ttlMs: this.ttlMs };
   }
 
-    invalidate(reason: string): void {
+  invalidate(reason: string): void {
     this.entry = null;
     this.lastInvalidatedAt = Date.now();
     this.lastInvalidationReason = reason;
@@ -78,6 +77,6 @@ export class CacheEngine {
   }
 
   updateTtl(ttlSeconds: number): void {
-    (this as any).ttlMs = ttlSeconds * 1000;
+    this.ttlMs = ttlSeconds * 1000;
   }
 }

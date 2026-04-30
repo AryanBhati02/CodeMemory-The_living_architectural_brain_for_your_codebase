@@ -1,4 +1,3 @@
-
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
@@ -147,7 +146,6 @@ export class OllamaProvider implements IAIProvider {
         }
       }
 
-      // Flush any remaining buffered bytes after the stream closes
       if (buffer.trim()) {
         this._processStreamLine(buffer, (delta, isDone) => {
           if (!isDone) fullContent += delta;
@@ -175,7 +173,7 @@ export class OllamaProvider implements IAIProvider {
     try {
       parsed = JSON.parse(trimmed);
     } catch {
-      return; // skip malformed lines (e.g. Ollama error text before JSON)
+      return;
     }
     if (parsed.done) {
       emit('', true);

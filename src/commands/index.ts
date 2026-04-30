@@ -1,11 +1,12 @@
-
 import * as vscode from 'vscode';
 import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { TokenDashboardPanel as TDP } from '../ui/TokenDashboardPanel';
+import type { RelationType, DecisionType } from '../graph/types';
 
-
+interface DecisionTypeItem extends vscode.QuickPickItem { id: string }
+interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
 
 export async function captureDecisionCommand(
   decisionService: DecisionService,
@@ -30,15 +31,15 @@ export async function captureDecisionCommand(
   });
   if (!rationale) return;
 
-  const typeChoice = await vscode.window.showQuickPick(
-    [
-      { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern', id: 'pattern' },
-      { label: '$(shield) Constraint',        description: 'A hard rule that must be followed', id: 'constraint' },
-      { label: '$(book) Convention',          description: 'A soft style/naming agreement', id: 'convention' },
-      { label: '$(question) Why',             description: 'Rationale for a non-obvious choice', id: 'why' },
-    ],
-    { title: 'CodeMemory: Capture Decision (3/3)', placeHolder: 'Decision type' }
-  );
+  const typeItems: DecisionTypeItem[] = [
+    { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
+    { label: '$(shield) Constraint',        description: 'A hard rule that must be followed',  id: 'constraint' },
+    { label: '$(book) Convention',          description: 'A soft style/naming agreement',      id: 'convention' },
+    { label: '$(question) Why',             description: 'Rationale for a non-obvious choice', id: 'why' },
+  ];
+  const typeChoice = await vscode.window.showQuickPick(typeItems, {
+    title: 'CodeMemory: Capture Decision (3/3)', placeHolder: 'Decision type',
+  });
   if (!typeChoice) return;
 
   await vscode.window.withProgress(
@@ -47,7 +48,7 @@ export async function captureDecisionCommand(
       await decisionService.createDecision({
         title,
         rationale,
-        type: (typeChoice as any).id,
+        type: typeChoice.id as DecisionType,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
         tags: [],
@@ -59,8 +60,6 @@ export async function captureDecisionCommand(
   treeProvider.refresh();
   vscode.window.showInformationMessage(`✓ Decision captured: "${title}"`);
 }
-
-
 
 export async function searchDecisionsCommand(
   decisionService: DecisionService
@@ -100,8 +99,6 @@ export async function searchDecisionsCommand(
   }
 }
 
-
-
 export async function askAICommand(
   pipeline: AIPipeline,
   decisionService: DecisionService
@@ -118,7 +115,6 @@ export async function askAICommand(
   const activeFile  = editor?.document.uri.fsPath;
   const decisions   = decisionService.getDecisions();
 
-  
   const panel = vscode.window.createWebviewPanel(
     'codememory.aiResponse',
     'CodeMemory: AI Response',
@@ -190,8 +186,6 @@ function buildStreamingResponseHtml(query: string): string {
 </html>`;
 }
 
-
-
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
   if (!filePaths.length) return;
@@ -202,8 +196,6 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
 }
-
-
 
 export async function editDecisionCommand(
   decisionService: DecisionService,
@@ -223,7 +215,7 @@ export async function editDecisionCommand(
   });
   if (rationale === undefined) return;
 
-  const typeItems = [
+  const editTypeItems: DecisionTypeItem[] = [
     { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
     { label: '$(shield) Constraint',        description: 'A hard rule that must be followed',  id: 'constraint' },
     { label: '$(book) Convention',          description: 'A soft style/naming agreement',      id: 'convention' },
@@ -233,7 +225,7 @@ export async function editDecisionCommand(
     description: item.id === node.payload.type ? item.description + ' (current)' : item.description,
   }));
 
-  const typePick = await vscode.window.showQuickPick(typeItems, {
+  const typePick = await vscode.window.showQuickPick(editTypeItems, {
     title: 'Edit Decision (3/4) — Type',
   });
   if (!typePick) return;
@@ -251,13 +243,11 @@ export async function editDecisionCommand(
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
-    type:   (typePick as any).id,
+    type:   typePick.id as DecisionType,
     status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
 }
-
-
 
 export async function deleteDecisionCommand(
   decisionService: DecisionService,
@@ -273,8 +263,6 @@ export async function deleteDecisionCommand(
   vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
 }
 
-
-
 export async function linkDecisionCommand(
   decisionService: DecisionService,
   node: any
@@ -285,10 +273,12 @@ export async function linkDecisionCommand(
     return;
   }
 
-  const targetPick = await vscode.window.showQuickPick(
-    others.map(d => ({ label: d.payload.title, description: d.payload.type, id: d.id })),
-    { title: 'Link Decision — Select Target', placeHolder: 'Select decision to link to' }
-  );
+  const targetItems: DecisionPickItem[] = others.map(d => ({
+    label: d.payload.title, description: d.payload.type, id: d.id,
+  }));
+  const targetPick = await vscode.window.showQuickPick(targetItems, {
+    title: 'Link Decision — Select Target', placeHolder: 'Select decision to link to',
+  });
   if (!targetPick) return;
 
   const relPick = await vscode.window.showQuickPick(
@@ -297,8 +287,46 @@ export async function linkDecisionCommand(
   );
   if (!relPick) return;
 
-  decisionService.createEdge(node.id, (targetPick as any).id, relPick.label);
+  decisionService.createEdge(node.id, targetPick.id, relPick.label as RelationType);
   vscode.window.showInformationMessage(
     `Linked "${node.payload.title}" → ${relPick.label} → "${targetPick.label}"`
   );
+}
+
+export async function exportDecisionsCommand(
+  decisionService: DecisionService
+): Promise<void> {
+  const decisions = decisionService.getDecisions();
+  const json = JSON.stringify(decisions, null, 2);
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri: vscode.Uri.file('codememory-decisions.json'),
+    filters: { 'JSON': ['json'] },
+  });
+  if (!uri) return;
+  await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf-8'));
+  vscode.window.showInformationMessage(`Exported ${decisions.length} decisions to ${uri.fsPath}`);
+}
+
+export async function importDecisionsCommand(
+  decisionService: DecisionService
+): Promise<void> {
+  const uris = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    filters: { 'JSON': ['json'] },
+  });
+  if (!uris?.length) return;
+  const raw = await vscode.workspace.fs.readFile(uris[0]);
+  let nodes;
+  try {
+    nodes = JSON.parse(Buffer.from(raw).toString('utf-8'));
+  } catch {
+    vscode.window.showErrorMessage('Invalid JSON file.');
+    return;
+  }
+  if (!Array.isArray(nodes)) {
+    vscode.window.showErrorMessage('Expected a JSON array of decisions.');
+    return;
+  }
+  await decisionService.importDecisions(nodes);
+  vscode.window.showInformationMessage(`Imported ${nodes.length} decisions.`);
 }

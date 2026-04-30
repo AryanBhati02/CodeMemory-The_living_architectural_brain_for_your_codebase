@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import { DecisionTreeItem } from './DecisionTreeItem';
 import type { DecisionNode, DecisionType } from '../graph/types';
@@ -50,7 +49,6 @@ export class DecisionTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       return element.children;
     }
 
-    // Root: get all decisions, group them
     let decisions = this.decisionService.getDecisions();
 
     if (this.filterQuery) {
