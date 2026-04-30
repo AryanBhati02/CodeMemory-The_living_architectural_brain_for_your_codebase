@@ -1,33 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
 import { IAIProvider, AIProviderError } from './IAIProvider';
 import { ClaudeProvider } from './ClaudeProvider';
 import { OpenAIProvider } from './OpenAIProvider';
 import { GeminiProvider } from './GeminiProvider';
 import { OllamaProvider } from './OllamaProvider';
 import { OpenAICompatProvider } from './OpenAICompatProvider';
+
 export class ProviderManager {
   private static instance: ProviderManager | undefined;
+
   private readonly providers = new Map<string, IAIProvider>();
   private activeProviderId = 'claude';
-    static getInstance(): ProviderManager {
+
+  
+
+  
+  static getInstance(): ProviderManager {
     if (!ProviderManager.instance) {
       ProviderManager.instance = new ProviderManager();
       ProviderManager.instance._registerDefaults();
     }
     return ProviderManager.instance;
   }
-    static resetInstance(): void {
+
+  
+  static resetInstance(): void {
     ProviderManager.instance = undefined;
   }
-    register(provider: IAIProvider): void {
+
+  
+
+  
+  register(provider: IAIProvider): void {
     this.providers.set(provider.id, provider);
   }
-    unregister(providerId: string): void {
+
+  
+  unregister(providerId: string): void {
     if (providerId === this.activeProviderId) {
       throw new Error(`[ProviderManager] Cannot unregister active provider "${providerId}". Switch first.`);
     }
     this.providers.delete(providerId);
   }
-    setActiveProvider(providerId: string): void {
+
+  
+
+  
+  setActiveProvider(providerId: string): void {
     if (!this.providers.has(providerId)) {
       throw new Error(
         `[ProviderManager] Provider "${providerId}" not registered. Available: ${[...this.providers.keys()].join(', ')}`
@@ -35,10 +64,14 @@ export class ProviderManager {
     }
     this.activeProviderId = providerId;
   }
-    getActiveProviderId(): string {
+
+  
+  getActiveProviderId(): string {
     return this.activeProviderId;
   }
-    getActiveProvider(): IAIProvider {
+
+  
+  getActiveProvider(): IAIProvider {
     const provider = this.providers.get(this.activeProviderId);
     if (!provider) {
       throw new AIProviderError(
@@ -50,17 +83,26 @@ export class ProviderManager {
     }
     return provider;
   }
-    getProvider(providerId: string): IAIProvider | undefined {
+
+  
+  getProvider(providerId: string): IAIProvider | undefined {
     return this.providers.get(providerId);
   }
-    listProviders(): IAIProvider[] {
+
+  
+  listProviders(): IAIProvider[] {
     return [...this.providers.values()];
   }
-    validateKey(providerId: string, apiKey: string): { valid: boolean; reason?: string } {
+
+  
+  validateKey(providerId: string, apiKey: string): { valid: boolean; reason?: string } {
     const provider = this.providers.get(providerId);
     if (!provider) return { valid: false, reason: `Unknown provider "${providerId}".` };
     return provider.validateKey(apiKey);
   }
+
+  
+
   private _registerDefaults(): void {
     this.register(new ClaudeProvider());
     this.register(new OpenAIProvider());

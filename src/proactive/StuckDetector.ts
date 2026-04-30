@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import type { DecisionService } from '../decisions/decisionService';
+
 export class StuckDetector implements vscode.Disposable {
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly dismissedFiles = new Set<string>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly STUCK_MS: number;
+
   constructor(
     private readonly decisionService: DecisionService,
     stuckMinutes = 8
@@ -23,22 +25,26 @@ export class StuckDetector implements vscode.Disposable {
     const current = vscode.window.activeTextEditor;
     if (current) this._resetTimer(current.document.uri.fsPath);
   }
+
   private _resetTimer(filePath: string): void {
     clearTimeout(this.timers.get(filePath));
     if (this.dismissedFiles.has(filePath)) return;
     const t = setTimeout(() => this._onStuck(filePath), this.STUCK_MS);
     this.timers.set(filePath, t);
   }
+
   private async _onStuck(filePath: string): Promise<void> {
     const fileName = path.basename(filePath, path.extname(filePath));
     const editor = vscode.window.activeTextEditor;
     const snippet = editor?.document.getText().slice(0, 200) ?? '';
     const query = `${fileName} ${snippet}`.trim();
+
     let results;
     try {
       results = await this.decisionService.hybridSearch(query, 3);
     } catch { return; }
     if (!results.length) return;
+
     const top = results[0];
     const action = await vscode.window.showInformationMessage(
       `CodeMemory: "${top.payload.title}" may be relevant to what you're working on.`,
@@ -46,6 +52,7 @@ export class StuckDetector implements vscode.Disposable {
       'Not helpful',
       'Dismiss for this file'
     );
+
     if (action === 'Show All 3') {
       const picks = await vscode.window.showQuickPick(
         results.map(d => ({ label: d.payload.title, detail: d.payload.rationale.slice(0, 100), decision: d })),
@@ -58,6 +65,7 @@ export class StuckDetector implements vscode.Disposable {
       this.dismissedFiles.add(filePath);
     }
   }
+
   dispose(): void {
     this.timers.forEach(t => clearTimeout(t));
     this.timers.clear();

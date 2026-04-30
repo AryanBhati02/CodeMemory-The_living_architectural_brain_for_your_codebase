@@ -1,9 +1,22 @@
+
+
+
+
+
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { ProviderManager } from '../ai/providers/ProviderManager';
 import type { SecretStorageService } from '../storage/secretStorage';
 import { getNonce } from '../utils/getNonce';
+
 type WebviewMessage =
   | { type: 'ready' }
   | { type: 'apply-key'; providerId: string; apiKey: string }
@@ -11,21 +24,27 @@ type WebviewMessage =
   | { type: 'switch-provider'; providerId: string }
   | { type: 'select-model'; providerId: string; model: string }
   | { type: 'open-url'; url: string };
+
 export class ProviderDrawer implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
-    private readonly _onProviderChanged = new vscode.EventEmitter<string>();
+
+  
+  private readonly _onProviderChanged = new vscode.EventEmitter<string>();
   readonly onProviderChanged = this._onProviderChanged.event;
+
   constructor(
     private readonly manager: ProviderManager,
     private readonly secrets: SecretStorageService,
     private readonly extensionUri: vscode.Uri
   ) {}
+
   show(): void {
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Beside);
       return;
     }
+
     this.panel = vscode.window.createWebviewPanel(
       'codememory.providerDrawer',
       'CodeMemory · AI Provider',
@@ -36,15 +55,18 @@ export class ProviderDrawer implements vscode.Disposable {
         localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'src', 'ui', 'webview')],
       }
     );
+
     this.panel.webview.html = this._getHtml();
     this.panel.webview.onDidReceiveMessage(this._handleMessage.bind(this), undefined, this.disposables);
     this.panel.onDidDispose(() => { this.panel = undefined; }, null, this.disposables);
   }
+
   private async _handleMessage(msg: WebviewMessage): Promise<void> {
     switch (msg.type) {
       case 'ready':
         await this._sendInitialState();
         break;
+
       case 'apply-key': {
         const validation = this.manager.validateKey(msg.providerId, msg.apiKey);
         if (validation.valid) {
@@ -53,10 +75,12 @@ export class ProviderDrawer implements vscode.Disposable {
         this._post({ type: 'validation-result', providerId: msg.providerId, result: validation });
         break;
       }
+
       case 'remove-key':
         await this.secrets.deleteKey(msg.providerId);
         this._post({ type: 'key-removed', providerId: msg.providerId });
         break;
+
       case 'switch-provider':
         try {
           this.manager.setActiveProvider(msg.providerId);
@@ -67,15 +91,18 @@ export class ProviderDrawer implements vscode.Disposable {
           this._post({ type: 'error', message: err.message });
         }
         break;
+
       case 'select-model':
         await this.secrets.setSelectedModel(msg.providerId, msg.model);
         this._post({ type: 'model-selected', providerId: msg.providerId, model: msg.model });
         break;
+
       case 'open-url':
         if (msg.url) vscode.env.openExternal(vscode.Uri.parse(msg.url));
         break;
     }
   }
+
   private async _sendInitialState(): Promise<void> {
     const providers = await Promise.all(this.manager.listProviders().map(async (p) => ({
       id: p.id,
@@ -88,20 +115,24 @@ export class ProviderDrawer implements vscode.Disposable {
       availableModels: p.capabilities.availableModels,
       requiresApiKey: !p.validateKey('').valid,
     })));
+
     this._post({
       type: 'init',
       providers,
       activeProviderId: this.manager.getActiveProviderId(),
     });
   }
+
   private _post(msg: Record<string, unknown>): void {
     this.panel?.webview.postMessage(msg);
   }
+
   private _getHtml(): string {
     const htmlPath = path.join(this.extensionUri.fsPath, 'src', 'ui', 'webview', 'providerDrawer.html');
     if (fs.existsSync(htmlPath)) return fs.readFileSync(htmlPath, 'utf-8');
     return this._getFallbackHtml();
   }
+
   private _getFallbackHtml(): string {
     const nonce = getNonce();
     return `<!DOCTYPE html>
@@ -126,6 +157,7 @@ export class ProviderDrawer implements vscode.Disposable {
     const vscode = acquireVsCodeApi();
     const providers = [];
     let activeId = '';
+
     window.addEventListener('message', e => {
       const msg = e.data;
       if (msg.type === 'init') {
@@ -137,6 +169,7 @@ export class ProviderDrawer implements vscode.Disposable {
         if (el) el.textContent = msg.result.valid ? '✓ Key saved' : '✗ ' + (msg.result.reason || 'Invalid key');
       }
     });
+
     function renderProviders(provs, configured) {
       const root = document.getElementById('root');
       root.innerHTML = provs.map(p => \`
@@ -149,6 +182,7 @@ export class ProviderDrawer implements vscode.Disposable {
         </div>
       \`).join('');
     }
+
     function applyKey(id) {
       const key = document.getElementById('key-' + id).value;
       vscode.postMessage({ type: 'apply-key', providerId: id, apiKey: key });
@@ -156,11 +190,13 @@ export class ProviderDrawer implements vscode.Disposable {
     function switchTo(id) {
       vscode.postMessage({ type: 'switch-provider', providerId: id });
     }
+
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>
 </html>`;
   }
+
   dispose(): void {
     this.panel?.dispose();
     this._onProviderChanged.dispose();

@@ -1,12 +1,24 @@
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { TokenDashboardPanel as TDP } from '../ui/TokenDashboardPanel';
 import type { RelationType } from '../graph/types';
+
 interface DecisionTypeItem extends vscode.QuickPickItem { id: string }
 interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
+
+
+
 interface SuggestedMetadata { type: string; tags: string[] }
+
 async function suggestDecisionMetadata(
   pipeline: AIPipeline,
   title: string,
@@ -23,14 +35,17 @@ async function suggestDecisionMetadata(
     `- convention: a soft style/naming/structural agreement\n` +
     `- why: the rationale behind a non-obvious choice\n` +
     `- tags: 3-5 short lowercase words, no spaces, relevant to the decision`;
+
   try {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), 10_000)
     );
     const request = pipeline.query({ query: prompt, decisions: [] });
     const result = await Promise.race([request, timeout]);
+
     let text = result.response.content.trim();
     text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
     const parsed = JSON.parse(text);
     const validTypes = ['pattern', 'constraint', 'convention', 'why'];
     if (!validTypes.includes(parsed.type) || !Array.isArray(parsed.tags)) return null;
@@ -39,6 +54,10 @@ async function suggestDecisionMetadata(
     return null;
   }
 }
+
+
+
+
 export async function captureDecisionCommand(
   decisionService: DecisionService,
   treeProvider: DecisionTreeProvider,
@@ -48,23 +67,27 @@ export async function captureDecisionCommand(
   const codeContext  = editor?.document.getText(editor.selection) || undefined;
   const filePath     = editor?.document.uri.fsPath || undefined;
   const lineNumber   = editor?.selection.start.line;
+
   const title = await vscode.window.showInputBox({
     title: 'CodeMemory: Capture Decision (1/4)',
     prompt: 'Decision title (e.g. "Use fetch instead of axios")',
     placeHolder: 'Short, descriptive title',
   });
   if (!title) return;
+
   const rationale = await vscode.window.showInputBox({
     title: 'CodeMemory: Capture Decision (2/4)',
     prompt: 'Why was this decision made?',
     placeHolder: 'Rationale / context',
   });
   if (!rationale) return;
+
   let suggestion: SuggestedMetadata | null = null;
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'CodeMemory: Suggesting type and tags…' },
     async () => { suggestion = await suggestDecisionMetadata(pipeline, title, rationale); }
   );
+
   const typeItems: DecisionTypeItem[] = [
     { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
     { label: '$(shield) Constraint',        description: 'A hard rule that must be followed',  id: 'constraint' },
@@ -79,17 +102,20 @@ export async function captureDecisionCommand(
       }
     });
   }
+
   const typeChoice = await vscode.window.showQuickPick(typeItems, {
     title: 'CodeMemory: Capture Decision (3/4)', placeHolder: 'Decision type',
   });
   if (!typeChoice) return;
+
   const tagsInput = await vscode.window.showInputBox({
     title: 'CodeMemory: Capture Decision (4/4)',
     prompt: 'Tags (comma-separated)',
     placeHolder: 'e.g. api, performance, security',
-    value: (suggestion as any)?.tags.join(', ') ?? '',
+    value: (suggestion as any)?.tags?.join(', ') ?? '',
   });
   const tags = (tagsInput ?? '').split(',').map(t => t.trim()).filter(Boolean);
+
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Saving decision…' },
     async () => {
@@ -104,10 +130,13 @@ export async function captureDecisionCommand(
       });
     }
   );
+
   treeProvider.refresh();
   vscode.window.showInformationMessage(`✓ Decision captured: "${title}"`);
 }
+
 // ─── Search Decisions ─────────────────────────────────────────────────────────
+
 /** Search decisions via hybrid search and let the user navigate to the selected result. */
 export async function searchDecisionsCommand(
   decisionService: DecisionService
@@ -118,11 +147,14 @@ export async function searchDecisionsCommand(
     placeHolder: 'e.g. "fetch" or "authentication"',
   });
   if (query === undefined) return;
+
   const results = await decisionService.hybridSearch(query, 20);
+
   if (!results.length) {
     vscode.window.showInformationMessage(`No decisions found for "${query}"`);
     return;
   }
+
   const pick = await vscode.window.showQuickPick(
     results.map((d) => ({
       label:       `$(${d.payload.type === 'constraint' ? 'shield' : 'circuit-board'}) ${d.payload.title}`,
@@ -132,6 +164,7 @@ export async function searchDecisionsCommand(
     })),
     { title: `Found ${results.length} decision(s)`, matchOnDescription: true, matchOnDetail: true }
   );
+
   if (pick?.decision && pick.decision.payload.filePaths.length > 0) {
     const uri = vscode.Uri.file(pick.decision.payload.filePaths[0]);
     try {
@@ -142,6 +175,10 @@ export async function searchDecisionsCommand(
     }
   }
 }
+
+
+
+
 export async function askAICommand(
   pipeline: AIPipeline,
   decisionService: DecisionService
@@ -152,10 +189,13 @@ export async function askAICommand(
     placeHolder: 'e.g. "Why do we use fetch instead of axios?"',
   });
   if (!query) return;
+
   const editor      = vscode.window.activeTextEditor;
   const codeContext = editor?.document.getText(editor.selection) || undefined;
   const activeFile  = editor?.document.uri.fsPath;
   const decisions   = decisionService.getDecisions();
+
+  
   const panel = vscode.window.createWebviewPanel(
     'codememory.aiResponse',
     'CodeMemory: AI Response',
@@ -163,13 +203,16 @@ export async function askAICommand(
     { enableScripts: true }
   );
   panel.webview.html = buildStreamingResponseHtml(query);
+
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'CodeMemory: Thinking…', cancellable: true },
     async (_progress, token) => {
       const signal = new AbortController();
       token.onCancellationRequested(() => signal.abort());
+
       try {
         let accumulated = '';
+
         const result = await pipeline.query({
           query,
           decisions,
@@ -182,6 +225,7 @@ export async function askAICommand(
           },
           signal: signal.signal,
         });
+
         panel.webview.postMessage({
           type: 'done',
           metaText: `${result.providerId} · ${result.graphDecisionsInjected} decisions · ${result.cacheHit ? 'cached' : 'live'}`,
@@ -192,6 +236,7 @@ export async function askAICommand(
     }
   );
 }
+
 function buildStreamingResponseHtml(query: string): string {
   const escapedQuery = query.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<!DOCTYPE html>
@@ -221,6 +266,10 @@ function buildStreamingResponseHtml(query: string): string {
 </body>
 </html>`;
 }
+
+
+
+
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
   if (!filePaths.length) return;
@@ -231,6 +280,10 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
 }
+
+
+
+
 export async function editDecisionCommand(
   decisionService: DecisionService,
   node: any
@@ -241,12 +294,14 @@ export async function editDecisionCommand(
     prompt: 'Decision title',
   });
   if (title === undefined) return;
+
   const rationale = await vscode.window.showInputBox({
     title: 'Edit Decision (2/4) — Rationale',
     value: node.payload.rationale,
     prompt: 'Why was this decision made?',
   });
   if (rationale === undefined) return;
+
   const editTypeItems: DecisionTypeItem[] = [
     { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
     { label: '$(shield) Constraint',        description: 'A hard rule that must be followed',  id: 'constraint' },
@@ -256,26 +311,34 @@ export async function editDecisionCommand(
     ...item,
     description: item.id === node.payload.type ? item.description + ' (current)' : item.description,
   }));
+
   const typePick = await vscode.window.showQuickPick(editTypeItems, {
     title: 'Edit Decision (3/4) — Type',
   });
   if (!typePick) return;
+
   const statusItems = (['proposed', 'accepted', 'deprecated', 'superseded'] as const).map(s => ({
     label:       s,
     description: s === node.payload.status ? '(current)' : '',
   }));
+
   const statusPick = await vscode.window.showQuickPick(statusItems, {
     title: 'Edit Decision (4/4) — Status',
   });
   if (!statusPick) return;
+
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
     type:   typePick.id as any,
-    status: statusPick.label,
+    status: statusPick.label as any,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
 }
+
+
+
+
 export async function deleteDecisionCommand(
   decisionService: DecisionService,
   node: any
@@ -285,9 +348,14 @@ export async function deleteDecisionCommand(
     'Delete', 'Cancel'
   );
   if (answer !== 'Delete') return;
+
   decisionService.deleteDecision(node.id);
   vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
 }
+
+
+
+
 export async function linkDecisionCommand(
   decisionService: DecisionService,
   node: any
@@ -297,6 +365,7 @@ export async function linkDecisionCommand(
     vscode.window.showInformationMessage('No other decisions to link to.');
     return;
   }
+
   const targetItems: DecisionPickItem[] = others.map(d => ({
     label: d.payload.title, description: d.payload.type, id: d.id,
   }));
@@ -304,16 +373,22 @@ export async function linkDecisionCommand(
     title: 'Link Decision — Select Target', placeHolder: 'Select decision to link to',
   });
   if (!targetPick) return;
+
   const relPick = await vscode.window.showQuickPick(
     (['CONFLICTS_WITH', 'DEPENDS_ON', 'SUPERSEDES', 'RELATED_TO', 'APPLIES_TO'] as const).map(r => ({ label: r })),
     { title: 'Link Decision — Relation Type', placeHolder: 'Select relation type' }
   );
   if (!relPick) return;
+
   decisionService.createEdge(node.id, targetPick.id, relPick.label as RelationType);
   vscode.window.showInformationMessage(
     `Linked "${node.payload.title}" → ${relPick.label} → "${targetPick.label}"`
   );
 }
+
+
+
+
 export async function exportDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {
@@ -327,6 +402,10 @@ export async function exportDecisionsCommand(
   await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf-8'));
   vscode.window.showInformationMessage(`Exported ${decisions.length} decisions to ${uri.fsPath}`);
 }
+
+
+
+
 export async function importDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {

@@ -1,17 +1,17 @@
-/**
- * CodeMemory — MCP Server
- *
- * Standalone Node.js process that exposes CodeMemory's decision graph to
- * AI agents via the Model Context Protocol (MCP).
- *
- * Reads the same .codecontext/graph.db file the VS Code extension uses.
- * DB path is configurable via CODEMEMORY_DB_PATH env var.
- *
- * Tools exposed:
- *   1. search_decisions      — FTS5 keyword search across decisions
- *   2. get_decision          — Fetch a specific decision by ID
- *   3. check_constraint_violation — List constraints matching a file path
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -23,7 +23,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// ─── Types (mirrored from graph/types.ts — standalone process, no src imports) ─
+
 
 interface DecisionPayload {
   title: string;
@@ -51,7 +51,7 @@ interface NodeRow {
   created_at: string; updated_at: string; author_name: string; author_email: string;
 }
 
-// ─── Database Helpers ─────────────────────────────────────────────────────────
+
 
 function resolveDbPath(): string {
   return process.env.CODEMEMORY_DB_PATH
@@ -270,7 +270,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
+
 
 async function main(): Promise<void> {
   const dbPath = resolveDbPath();

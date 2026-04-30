@@ -1,31 +1,50 @@
+
+
+
+
+
+
+
+
+
+
 import { Worker } from 'worker_threads';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { logger } from '../utils/logger';
 import type { CodeMemoryDatabase } from '../db/database';
+
 type WorkerMessage =
   | { type: 'ready'; error?: string }
   | { type: 'embedding'; nodeId: string; embedding?: number[]; error?: string }
   | { type: 'text-embedding'; requestId: string; embedding?: number[]; error?: string };
+
 interface PendingJob { resolve: () => void; reject: (err: Error) => void; }
 interface TextJob { resolve: (v: Float32Array) => void; reject: (err: Error) => void; }
+
 export class EmbeddingQueue implements vscode.Disposable {
   private worker: Worker | null = null;
   private readonly pendingJobs = new Map<string, PendingJob>();
   private readonly _textJobs   = new Map<string, TextJob>();
   private workerReady = false;
   private _disposed = false;
+
   private readonly _onEmbeddingComplete = new vscode.EventEmitter<string>();
   readonly onEmbeddingComplete = this._onEmbeddingComplete.event;
+
   constructor(
     private readonly db: CodeMemoryDatabase,
     private readonly extensionPath: string
   ) {}
-    async start(): Promise<void> {
+
+  
+  async start(): Promise<void> {
     await this._spawnWorker();
     this._scheduleBackfill();
   }
-    embedText(text: string): Promise<Float32Array> {
+
+  
+  embedText(text: string): Promise<Float32Array> {
     if (!this.worker || !this.workerReady) {
       return Promise.reject(new Error('Embedding worker not ready'));
     }
@@ -36,7 +55,9 @@ export class EmbeddingQueue implements vscode.Disposable {
       this.worker!.postMessage({ type: 'embed-text', requestId, text });
     });
   }
-    enqueue(nodeId: string, text: string): Promise<void> {
+
+  
+  enqueue(nodeId: string, text: string): Promise<void> {
     if (!this.worker || !this.workerReady) {
       return Promise.resolve(); 
     }
@@ -45,10 +66,12 @@ export class EmbeddingQueue implements vscode.Disposable {
       this.worker!.postMessage({ type: 'embed', nodeId, text });
     });
   }
+
   private async _spawnWorker(): Promise<void> {
     return new Promise((resolve, reject) => {
       const workerPath = path.join(this.extensionPath, 'dist', 'workers', 'embeddingWorker.js');
       this.worker = new Worker(workerPath);
+
       this.worker.on('message', (msg: WorkerMessage) => this._handleMessage(msg, resolve));
       this.worker.on('error', (err) => {
         logger.error('EmbeddingQueue', 'Worker error', err);
@@ -66,6 +89,7 @@ export class EmbeddingQueue implements vscode.Disposable {
       });
     });
   }
+
   private _handleMessage(msg: WorkerMessage, onReady?: () => void): void {
     if (msg.type === 'ready') {
       this.workerReady = true;
@@ -75,6 +99,7 @@ export class EmbeddingQueue implements vscode.Disposable {
       onReady?.();
       return;
     }
+
     if (msg.type === 'text-embedding') {
       const { requestId, embedding, error } = msg;
       const job = this._textJobs.get(requestId);
@@ -87,10 +112,12 @@ export class EmbeddingQueue implements vscode.Disposable {
       }
       return;
     }
+
     if (msg.type === 'embedding') {
       const { nodeId, embedding, error } = msg;
       const job = this.pendingJobs.get(nodeId);
       this.pendingJobs.delete(nodeId);
+
       if (error) {
         job?.reject(new Error(error));
         return;
@@ -102,6 +129,7 @@ export class EmbeddingQueue implements vscode.Disposable {
       job?.resolve();
     }
   }
+
   private _scheduleBackfill(): void {
     setTimeout(() => {
       const unembedded = this.db.getUnembeddedNodes();
@@ -111,7 +139,9 @@ export class EmbeddingQueue implements vscode.Disposable {
       }
     }, 3000);
   }
-    dispose(): void {
+
+  
+  dispose(): void {
     this._disposed = true;
     this.worker?.terminate();
     this.worker = null;

@@ -96,6 +96,12 @@
         "title": "Open Decision Graph",
         "category": "CodeMemory",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "codememory.discoverFromGit",
+        "title": "Discover Decisions from Git History",
+        "category": "CodeMemory",
+        "icon": "$(git-commit)"
       }
     ],
     "menus": {

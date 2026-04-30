@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
 import { getNonce } from '../utils/getNonce';
 import type { DecisionService } from '../decisions/decisionService';
+
 export class GraphPanel implements vscode.Disposable {
   static current: GraphPanel | undefined;
   private static readonly VIEW_TYPE = 'codememory.graphPanel';
+
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];
   private onNodeClick: ((nodeId: string) => void) | undefined;
+
   static createOrShow(
     extensionUri: vscode.Uri,
     decisionService: DecisionService,
@@ -27,6 +30,7 @@ export class GraphPanel implements vscode.Disposable {
     GraphPanel.current = new GraphPanel(panel, decisionService, extensionUri, onNodeClick);
     return GraphPanel.current;
   }
+
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly decisionService: DecisionService,
@@ -36,7 +40,9 @@ export class GraphPanel implements vscode.Disposable {
     this.panel = panel;
     this.onNodeClick = onNodeClick;
     this.panel.webview.html = this._buildHtml();
+
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
     this.panel.webview.onDidReceiveMessage(
       (msg) => {
         if (msg.type === 'node-click' && msg.nodeId && this.onNodeClick) {
@@ -46,19 +52,24 @@ export class GraphPanel implements vscode.Disposable {
       null,
       this.disposables
     );
+
     this.disposables.push(
       this.decisionService.onGraphChange(() => this.refresh())
     );
+
     this.refresh();
   }
+
   refresh(): void {
     const nodes = this.decisionService.getDecisions();
     const edges = this.decisionService.getAllEdges();
+
     const edgeCounts = new Map<string, number>();
     for (const e of edges) {
       edgeCounts.set(e.fromId, (edgeCounts.get(e.fromId) ?? 0) + 1);
       edgeCounts.set(e.toId, (edgeCounts.get(e.toId) ?? 0) + 1);
     }
+
     const graphNodes = nodes.map(n => ({
       id:        n.id,
       title:     n.payload.title,
@@ -66,18 +77,21 @@ export class GraphPanel implements vscode.Disposable {
       status:    n.payload.status,
       edgeCount: edgeCounts.get(n.id) ?? 0,
     }));
+
     const graphLinks = edges.map(e => ({
       source:       e.fromId,
       target:       e.toId,
       relationType: e.relationType,
       note:         e.note ?? '',
     }));
+
     this.panel.webview.postMessage({
       type: 'graph-data',
       nodes: graphNodes,
       links: graphLinks,
     });
   }
+
   private _buildHtml(): string {
     const nonce = getNonce();
     return `<!DOCTYPE html>
@@ -90,6 +104,7 @@ export class GraphPanel implements vscode.Disposable {
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #050508; overflow: hidden; width: 100vw; height: 100vh; }
     svg { display: block; width: 100%; height: 100%; }
+
     .tooltip {
       position: absolute;
       pointer-events: none;
@@ -110,6 +125,7 @@ export class GraphPanel implements vscode.Disposable {
     .tooltip .tt-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
     .tooltip .tt-type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 2px; font-family: monospace; }
     .tooltip .tt-status { font-size: 10px; opacity: 0.5; font-family: monospace; }
+
     .edge-label {
       font-family: monospace;
       font-size: 9px;
@@ -119,6 +135,7 @@ export class GraphPanel implements vscode.Disposable {
       transition: opacity 0.15s ease;
     }
     .edge-label.visible { opacity: 1; }
+
     .empty-state {
       position: absolute;
       top: 50%; left: 50%;
@@ -139,10 +156,12 @@ export class GraphPanel implements vscode.Disposable {
     <div class="tt-title" id="tt-title"></div>
     <div class="tt-status" id="tt-status"></div>
   </div>
+
   <div class="empty-state" id="empty-state">
     <h2>No decisions yet</h2>
     <p>Capture your first architectural decision with<br><code>Ctrl+Shift+Alt+D</code> to see the graph.</p>
   </div>
+
   <svg id="graph-svg">
     <defs>
       <marker id="arrow-CONFLICTS_WITH" viewBox="0 -4 8 8" refX="20" refY="0" markerWidth="6" markerHeight="6" orient="auto">
@@ -162,15 +181,18 @@ export class GraphPanel implements vscode.Disposable {
       </marker>
     </defs>
   </svg>
+
   <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+
     const NODE_COLORS = {
       pattern:    '#4da8ff',
       constraint: '#ff5c5c',
       convention: '#1fd68a',
       why:        '#f5a52a',
     };
+
     const EDGE_COLORS = {
       CONFLICTS_WITH: '#ff5c5c',
       DEPENDS_ON:     '#f5a52a',
@@ -178,29 +200,38 @@ export class GraphPanel implements vscode.Disposable {
       RELATED_TO:     '#7a86a6',
       APPLIES_TO:     '#2dd4bf',
     };
+
     const svg       = d3.select('#graph-svg');
     const tooltip   = document.getElementById('tooltip');
     const ttTitle   = document.getElementById('tt-title');
     const ttType    = document.getElementById('tt-type');
     const ttStatus  = document.getElementById('tt-status');
     const emptyEl   = document.getElementById('empty-state');
+
     let width  = window.innerWidth;
     let height = window.innerHeight;
+
     const g = svg.append('g');
+
     const zoom = d3.zoom()
       .scaleExtent([0.15, 5])
       .on('zoom', (event) => g.attr('transform', event.transform));
     svg.call(zoom);
+
     let linkGroup      = g.append('g').attr('class', 'links');
     let edgeLabelGroup = g.append('g').attr('class', 'edge-labels');
     let nodeGroup      = g.append('g').attr('class', 'nodes');
+
     let simulation = null;
+
     function truncate(str, max) {
       return str.length > max ? str.slice(0, max) + '…' : str;
     }
+
     function nodeRadius(d) {
       return Math.sqrt((d.edgeCount || 0) + 1) * 8;
     }
+
     function renderGraph(nodes, links) {
       if (!nodes.length) {
         emptyEl.classList.add('visible');
@@ -211,9 +242,11 @@ export class GraphPanel implements vscode.Disposable {
         return;
       }
       emptyEl.classList.remove('visible');
+
       linkGroup.selectAll('*').remove();
       edgeLabelGroup.selectAll('*').remove();
       nodeGroup.selectAll('*').remove();
+
       // --- Edges ---
       const linkSel = linkGroup.selectAll('line')
         .data(links)
@@ -233,6 +266,7 @@ export class GraphPanel implements vscode.Disposable {
           d3.select(this).attr('stroke-opacity', 0.5).attr('stroke-width', 1.5);
           edgeLabelGroup.selectAll('.edge-label').classed('visible', false);
         });
+
       const edgeLabelSel = edgeLabelGroup.selectAll('text')
         .data(links)
         .enter()
@@ -240,6 +274,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('class', 'edge-label')
         .attr('text-anchor', 'middle')
         .text(d => d.relationType.replace(/_/g, ' '));
+
       // --- Nodes ---
       const nodeSel = nodeGroup.selectAll('g')
         .data(nodes)
@@ -251,6 +286,7 @@ export class GraphPanel implements vscode.Disposable {
           .on('drag', dragging)
           .on('end', dragEnd)
         );
+
       nodeSel.append('circle')
         .attr('r', d => nodeRadius(d))
         .attr('fill', d => NODE_COLORS[d.type] || '#4da8ff')
@@ -258,6 +294,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('stroke', d => NODE_COLORS[d.type] || '#4da8ff')
         .attr('stroke-width', 2)
         .attr('stroke-opacity', 0.3);
+
       // Glow effect
       nodeSel.append('circle')
         .attr('r', d => nodeRadius(d) + 6)
@@ -265,6 +302,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('stroke', d => NODE_COLORS[d.type] || '#4da8ff')
         .attr('stroke-width', 1)
         .attr('stroke-opacity', 0.1);
+
       nodeSel.append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', d => nodeRadius(d) + 16)
@@ -272,6 +310,7 @@ export class GraphPanel implements vscode.Disposable {
         .attr('font-size', '11px')
         .attr('font-family', 'system-ui, sans-serif')
         .text(d => truncate(d.title, 20));
+
       // Hover
       nodeSel
         .on('mouseenter', (event, d) => {
@@ -290,24 +329,29 @@ export class GraphPanel implements vscode.Disposable {
         .on('click', (event, d) => {
           vscode.postMessage({ type: 'node-click', nodeId: d.id });
         });
+
       // --- Simulation ---
       simulation = d3.forceSimulation(nodes)
         .force('link', d3.forceLink(links).id(d => d.id).distance(100))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(30));
+
       simulation.on('tick', () => {
         linkSel
           .attr('x1', d => d.source.x)
           .attr('y1', d => d.source.y)
           .attr('x2', d => d.target.x)
           .attr('y2', d => d.target.y);
+
         edgeLabelSel
           .attr('x', d => (d.source.x + d.target.x) / 2)
           .attr('y', d => (d.source.y + d.target.y) / 2);
+
         nodeSel.attr('transform', d => 'translate(' + d.x + ',' + d.y + ')');
       });
     }
+
     // --- Drag handlers ---
     function dragStart(event, d) {
       if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
@@ -323,12 +367,14 @@ export class GraphPanel implements vscode.Disposable {
       d.fx = null;
       d.fy = null;
     }
+
     // --- Resize ---
     window.addEventListener('resize', () => {
       width  = window.innerWidth;
       height = window.innerHeight;
       if (simulation) simulation.force('center', d3.forceCenter(width / 2, height / 2)).alpha(0.3).restart();
     });
+
     // --- Messages from extension ---
     window.addEventListener('message', (e) => {
       const msg = e.data;
@@ -340,6 +386,7 @@ export class GraphPanel implements vscode.Disposable {
 </body>
 </html>`;
   }
+
   dispose(): void {
     GraphPanel.current = undefined;
     this.panel.dispose();

@@ -1,15 +1,27 @@
+
+
+
+
+
+
+
+
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
+
 const FALLBACK_MODELS = ['llama3.3', 'mistral', 'qwen2.5', 'deepseek-r1', 'phi4'];
+
 export class OllamaProvider implements IAIProvider {
   readonly id = 'ollama';
   readonly name = 'Ollama (Local)';
   readonly accentColor = '#6B7280';
   readonly description = 'Local LLMs — zero cost, fully private';
   readonly apiKeyUrl = 'https://ollama.ai';
+
   private readonly baseUrl: string;
+
   readonly capabilities: ProviderCapabilities = {
     supportsStreaming: true,
     supportsExtendedThinking: false,
@@ -19,12 +31,15 @@ export class OllamaProvider implements IAIProvider {
     defaultModel: 'llama3.3',
     availableModels: [...FALLBACK_MODELS],
   };
+
   constructor(baseUrl = 'http://localhost:11434') {
     this.baseUrl = baseUrl;
   }
+
   validateKey(_apiKey: string): { valid: boolean; reason?: string } {
     return { valid: true };
   }
+
   async getAvailableModels(): Promise<string[]> {
     try {
       const res = await fetch(`${this.baseUrl}/api/tags`);
@@ -39,8 +54,10 @@ export class OllamaProvider implements IAIProvider {
       return FALLBACK_MODELS;
     }
   }
+
   async generateResponse(_apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const t0 = Date.now();
+
     try {
       const res = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
@@ -55,6 +72,7 @@ export class OllamaProvider implements IAIProvider {
         }),
         signal: options.signal,
       });
+
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new AIProviderError(
@@ -65,11 +83,13 @@ export class OllamaProvider implements IAIProvider {
           res.status,
         );
       }
+
       const data = await res.json() as {
         message: { content: string };
         prompt_eval_count?: number;
         eval_count?: number;
       };
+
       return {
         content: data.message.content,
         usage: {
@@ -85,8 +105,10 @@ export class OllamaProvider implements IAIProvider {
       throw this._normalizeError(err);
     }
   }
+
   async streamResponse(_apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const t0 = Date.now();
+
     try {
       const res = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
@@ -101,6 +123,7 @@ export class OllamaProvider implements IAIProvider {
         }),
         signal: options.signal,
       });
+
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new AIProviderError(
@@ -111,10 +134,12 @@ export class OllamaProvider implements IAIProvider {
           res.status,
         );
       }
+
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
       let buffer = '';
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -128,6 +153,7 @@ export class OllamaProvider implements IAIProvider {
           });
         }
       }
+
       // Flush any remaining buffered bytes after the stream closes
       if (buffer.trim()) {
         this._processStreamLine(buffer, (delta, isDone) => {
@@ -135,6 +161,7 @@ export class OllamaProvider implements IAIProvider {
           onChunk({ delta, done: isDone });
         });
       }
+
       return {
         content: fullContent,
         usage: { inputTokens: 0, outputTokens: 0 },
@@ -147,6 +174,7 @@ export class OllamaProvider implements IAIProvider {
       throw this._normalizeError(err);
     }
   }
+
   private _processStreamLine(line: string, emit: (delta: string, done: boolean) => void): void {
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -162,6 +190,7 @@ export class OllamaProvider implements IAIProvider {
       emit(parsed.message.content, false);
     }
   }
+
   private _normalizeError(err: any): AIProviderError {
     const isConnRefused =
       err?.cause?.code === 'ECONNREFUSED' ||

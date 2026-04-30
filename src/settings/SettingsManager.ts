@@ -1,4 +1,12 @@
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
+
 export interface CodeMemoryConfig {
   activeProviderId: string;
   maxDecisionsPerQuery: number;
@@ -6,8 +14,10 @@ export interface CodeMemoryConfig {
   stuckDetectorEnabled: boolean;
   driftDetectorEnabled: boolean;
 }
+
 export class SettingsManager {
   private static readonly SECTION = 'codememory';
+
   static get(): CodeMemoryConfig {
     const cfg = vscode.workspace.getConfiguration(SettingsManager.SECTION);
     return {
@@ -18,6 +28,7 @@ export class SettingsManager {
       driftDetectorEnabled: cfg.get<boolean>('driftDetectorEnabled', true),
     };
   }
+
   static onDidChange(listener: () => void): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration(SettingsManager.SECTION)) {
@@ -25,6 +36,7 @@ export class SettingsManager {
       }
     });
   }
+
   static async setActiveProvider(providerId: string): Promise<void> {
     await vscode.workspace
       .getConfiguration(SettingsManager.SECTION)

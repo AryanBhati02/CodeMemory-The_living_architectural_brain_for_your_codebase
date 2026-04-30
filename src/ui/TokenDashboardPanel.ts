@@ -1,12 +1,22 @@
+
+
+
+
+
+
+
 import * as vscode from 'vscode';
 import { getNonce } from '../utils/getNonce';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
+
 export class TokenDashboardPanel implements vscode.Disposable {
   static current: TokenDashboardPanel | undefined;
   private static readonly VIEW_TYPE = 'codememory.tokenDashboard';
+
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];
   private refreshInterval: ReturnType<typeof setInterval> | undefined;
+
   static createOrShow(extensionUri: vscode.Uri, pipeline: AIPipeline): TokenDashboardPanel {
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
     if (TokenDashboardPanel.current) {
@@ -22,6 +32,7 @@ export class TokenDashboardPanel implements vscode.Disposable {
     TokenDashboardPanel.current = new TokenDashboardPanel(panel, pipeline, extensionUri);
     return TokenDashboardPanel.current;
   }
+
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly pipeline: AIPipeline,
@@ -30,18 +41,23 @@ export class TokenDashboardPanel implements vscode.Disposable {
     this.panel = panel;
     this.panel.webview.html = this._buildHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+    
     this.refreshInterval = setInterval(() => this._pushStats(), 2000);
     this._pushStats();
+
     this.panel.webview.onDidReceiveMessage(
       (msg) => { if (msg.type === 'reset') this.pipeline.resetStats(); },
       null,
       this.disposables
     );
   }
+
   private _pushStats(): void {
     const stats = this.pipeline.getSessionStats();
     this.panel.webview.postMessage({ type: 'stats-update', stats });
   }
+
   private _buildHtml(): string {
     const nonce = getNonce();
     return `<!DOCTYPE html>
@@ -79,6 +95,7 @@ export class TokenDashboardPanel implements vscode.Disposable {
 <body>
   <h1>Token Dashboard</h1>
   <div class="subtitle">Live · refreshes every 2 s</div>
+
   <div class="grid">
     <div class="card">
       <div class="card-label">Input Tokens</div>
@@ -109,6 +126,7 @@ export class TokenDashboardPanel implements vscode.Disposable {
       <div class="card-value mono" id="provider">—</div>
     </div>
   </div>
+
   <div class="cache-section">
     <div class="cache-section-label">Cache Performance</div>
     <div class="bar-row">
@@ -121,21 +139,27 @@ export class TokenDashboardPanel implements vscode.Disposable {
     </div>
     <div class="cache-reason">Last invalidation: <span id="invalidation-reason">none</span></div>
   </div>
+
   <button class="reset-btn" id="reset-btn">Reset Stats</button>
+
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+
     function fmt(n) { return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n); }
     function fmtUsd(n) { return '$' + n.toFixed(4); }
     function fmtPct(r) { return (r * 100).toFixed(1) + '%'; }
+
     window.addEventListener('message', e => {
       const { type, stats } = e.data;
       if (type !== 'stats-update' || !stats) return;
+
       document.getElementById('input-tokens').textContent  = fmt(stats.totalInputTokens);
       document.getElementById('output-tokens').textContent = fmt(stats.totalOutputTokens);
       document.getElementById('cost').textContent          = fmtUsd(stats.estimatedCostUsd);
       document.getElementById('savings').textContent       = fmtUsd(stats.estimatedSavingsUsd);
       document.getElementById('requests').textContent      = fmt(stats.totalRequests);
       document.getElementById('provider').textContent      = stats.activeProviderId;
+
       const cs  = stats.cacheStats;
       const pct = fmtPct(cs.hitRate || 0);
       document.getElementById('hit-rate').textContent      = pct;
@@ -145,6 +169,7 @@ export class TokenDashboardPanel implements vscode.Disposable {
       document.getElementById('misses').textContent        = cs.misses;
       document.getElementById('invalidation-reason').textContent = cs.lastInvalidationReason || 'none';
     });
+
     document.getElementById('reset-btn').addEventListener('click', () => {
       vscode.postMessage({ type: 'reset' });
     });
@@ -152,6 +177,7 @@ export class TokenDashboardPanel implements vscode.Disposable {
 </body>
 </html>`;
   }
+
   dispose(): void {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     TokenDashboardPanel.current = undefined;
