@@ -11,9 +11,50 @@ interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
 
 
 
+interface SuggestedMetadata { type: string; tags: string[] }
+
+async function suggestDecisionMetadata(
+  pipeline: AIPipeline,
+  title: string,
+  rationale: string,
+): Promise<SuggestedMetadata | null> {
+  const prompt =
+    `Classify this architectural decision and suggest tags.\n\n` +
+    `Title: ${title}\nRationale: ${rationale}\n\n` +
+    `Respond with ONLY valid JSON, no markdown, no explanation:\n` +
+    `{\n  "type": "pattern" | "constraint" | "convention" | "why",\n  "tags": ["tag1", "tag2", "tag3"]\n}\n\n` +
+    `Rules:\n` +
+    `- pattern: a recurring design pattern used in this codebase\n` +
+    `- constraint: a hard rule that must be followed\n` +
+    `- convention: a soft style/naming/structural agreement\n` +
+    `- why: the rationale behind a non-obvious choice\n` +
+    `- tags: 3-5 short lowercase words, no spaces, relevant to the decision`;
+
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 10_000)
+    );
+    const request = pipeline.query({ query: prompt, decisions: [] });
+    const result = await Promise.race([request, timeout]);
+
+    let text = result.response.content.trim();
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+    const parsed = JSON.parse(text);
+    const validTypes = ['pattern', 'constraint', 'convention', 'why'];
+    if (!validTypes.includes(parsed.type) || !Array.isArray(parsed.tags)) return null;
+    return { type: parsed.type, tags: parsed.tags.map(String).slice(0, 5) };
+  } catch {
+    return null;
+  }
+}
+
+
+
 export async function captureDecisionCommand(
   decisionService: DecisionService,
-  treeProvider: DecisionTreeProvider
+  treeProvider: DecisionTreeProvider,
+  pipeline: AIPipeline,
 ): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   const codeContext  = editor?.document.getText(editor.selection) || undefined;
@@ -21,18 +62,24 @@ export async function captureDecisionCommand(
   const lineNumber   = editor?.selection.start.line;
 
   const title = await vscode.window.showInputBox({
-    title: 'CodeMemory: Capture Decision (1/3)',
+    title: 'CodeMemory: Capture Decision (1/4)',
     prompt: 'Decision title (e.g. "Use fetch instead of axios")',
     placeHolder: 'Short, descriptive title',
   });
   if (!title) return;
 
   const rationale = await vscode.window.showInputBox({
-    title: 'CodeMemory: Capture Decision (2/3)',
+    title: 'CodeMemory: Capture Decision (2/4)',
     prompt: 'Why was this decision made?',
     placeHolder: 'Rationale / context',
   });
   if (!rationale) return;
+
+  let suggestion: SuggestedMetadata | null = null;
+  await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'CodeMemory: Suggesting type and tags…' },
+    async () => { suggestion = await suggestDecisionMetadata(pipeline, title, rationale); }
+  );
 
   const typeItems: DecisionTypeItem[] = [
     { label: '$(circuit-board) Pattern',    description: 'A recurring design pattern',        id: 'pattern' },
@@ -40,10 +87,27 @@ export async function captureDecisionCommand(
     { label: '$(book) Convention',          description: 'A soft style/naming agreement',      id: 'convention' },
     { label: '$(question) Why',             description: 'Rationale for a non-obvious choice', id: 'why' },
   ];
+  if (suggestion) {
+    typeItems.forEach(item => {
+      if (item.id === suggestion!.type) {
+        item.picked = true;
+        item.description = item.description + ' ✦ AI suggested';
+      }
+    });
+  }
+
   const typeChoice = await vscode.window.showQuickPick(typeItems, {
-    title: 'CodeMemory: Capture Decision (3/3)', placeHolder: 'Decision type',
+    title: 'CodeMemory: Capture Decision (3/4)', placeHolder: 'Decision type',
   });
   if (!typeChoice) return;
+
+  const tagsInput = await vscode.window.showInputBox({
+    title: 'CodeMemory: Capture Decision (4/4)',
+    prompt: 'Tags (comma-separated)',
+    placeHolder: 'e.g. api, performance, security',
+    value: (suggestion as SuggestedMetadata | null)?.tags.join(', ') ?? '',
+  });
+  const tags = (tagsInput ?? '').split(',').map(t => t.trim()).filter(Boolean);
 
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Saving decision…' },
@@ -54,7 +118,7 @@ export async function captureDecisionCommand(
         type: typeChoice.id as any,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
-        tags: [],
+        tags,
         codeContext,
       });
     }
@@ -64,8 +128,9 @@ export async function captureDecisionCommand(
   vscode.window.showInformationMessage(`✓ Decision captured: "${title}"`);
 }
 
+// ─── Search Decisions ─────────────────────────────────────────────────────────
 
-
+/** Search decisions via hybrid search and let the user navigate to the selected result. */
 export async function searchDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {
@@ -256,7 +321,7 @@ export async function editDecisionCommand(
     title,
     rationale,
     type:   typePick.id as any,
-    status: statusPick.label,
+    status: statusPick.label as any,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
 }

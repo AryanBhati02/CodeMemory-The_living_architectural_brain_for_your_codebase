@@ -36,7 +36,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   const cmds: Array<[string, (...args: any[]) => any]> = [
     [
       'codememory.captureDecision',
-      () => captureDecisionCommand(decisionService, treeProvider),
+      () => captureDecisionCommand(decisionService, treeProvider, pipeline),
     ],
     [
       'codememory.searchDecisions',
