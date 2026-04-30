@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import {
   captureDecisionCommand,
@@ -18,12 +12,15 @@ import {
   importDecisionsCommand,
 } from './index';
 import { discoverFromGitCommand } from './gitArchaeology';
+import { configureSyncCommand, syncNowCommand } from './tursoCommands';
 import type { DecisionService }    from '../decisions/decisionService';
 import type { AIPipeline }         from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { ProviderDrawer }     from '../ui/ProviderDrawer';
 import type { TokenDashboardPanel } from '../ui/TokenDashboardPanel';
 import type { GraphPanel }          from '../ui/GraphPanel';
+import type { TursoSync }           from '../db/TursoSync';
+import type { SecretStorageService } from '../storage/secretStorage';
 
 export interface CommandDeps {
   context:         vscode.ExtensionContext;
@@ -31,12 +28,14 @@ export interface CommandDeps {
   pipeline:        AIPipeline;
   treeProvider:    DecisionTreeProvider;
   providerDrawer:  ProviderDrawer;
+  secrets:         SecretStorageService;
+  getTursoSync:    () => TursoSync | null;
+  setTursoSync:    (sync: TursoSync) => void;
   getTokenPanel:   () => TokenDashboardPanel | undefined;
   showTokenPanel:  () => void;
   showGraphPanel:      () => void;
   showDecisionDetail:  (nodeId: string) => void;
 }
-
 
 export function registerAllCommands(deps: CommandDeps): void {
   const { context, decisionService, pipeline, treeProvider, providerDrawer } = deps;
@@ -121,6 +120,14 @@ export function registerAllCommands(deps: CommandDeps): void {
     [
       'codememory.discoverFromGit',
       () => discoverFromGitCommand(decisionService, treeProvider, pipeline),
+    ],
+    [
+      'codememory.configureSync',
+      () => configureSyncCommand(deps.getTursoSync(), deps.secrets, treeProvider, deps.setTursoSync),
+    ],
+    [
+      'codememory.syncNow',
+      () => syncNowCommand(deps.getTursoSync(), treeProvider),
     ],
   ];
 

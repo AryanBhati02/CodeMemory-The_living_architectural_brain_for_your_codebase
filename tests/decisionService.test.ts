@@ -1,22 +1,9 @@
 
-
-
-
-
-
-
-
-
-
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
-
 
 vi.mock('vscode', () => ({
   EventEmitter: class MockEventEmitter {
-    
-    
+
     event = (_listener: Function) => ({ dispose: () => {} });
     fire(_data: unknown) {}
     dispose() {}
@@ -30,16 +17,12 @@ import { DecisionService, validatePayload } from '../src/decisions/decisionServi
 import { CodeMemoryDatabase } from '../src/db/database';
 import type { EmbeddingQueue } from '../src/workers/embeddingQueue';
 
-
-
 function makeMockQueue(): Pick<EmbeddingQueue, 'enqueue' | 'onEmbeddingComplete'> {
   return {
     enqueue: vi.fn().mockResolvedValue(undefined),
     onEmbeddingComplete: (_listener: Function) => ({ dispose: () => {} }),
   };
 }
-
-
 
 describe('DecisionService', () => {
   let db: CodeMemoryDatabase;
@@ -54,8 +37,6 @@ describe('DecisionService', () => {
     service.dispose();
     db.close();
   });
-
-  
 
   it('createDecision rejects an empty title and throws a descriptive error', async () => {
     await expect(
@@ -80,8 +61,6 @@ describe('DecisionService', () => {
       service.createDecision({ title: 'Valid Title', rationale: '   ', type: 'pattern' })
     ).rejects.toThrow();
   });
-
-  
 
   it("createDecision sets payload.status to 'proposed' when no status is provided", async () => {
     const node = await service.createDecision({
@@ -112,8 +91,6 @@ describe('DecisionService', () => {
     expect(fetched).toBeDefined();
     expect(fetched!.payload.title).toBe('Use dependency injection');
   });
-
-  
 
   it('updateDecision merges partial updates without overwriting untouched fields', async () => {
     const created = await service.createDecision({
@@ -149,8 +126,6 @@ describe('DecisionService', () => {
       service.updateDecision('nonexistent-uuid', { title: 'Ghost' })
     ).rejects.toThrow(/not found/i);
   });
-
-  
 
   it("createEdge with SUPERSEDES relation updates the target node's status to 'superseded'", async () => {
     const older = await service.createDecision({
@@ -208,8 +183,6 @@ describe('DecisionService', () => {
     expect(() => service.createEdge(nodeA.id, 'ghost-id', 'DEPENDS_ON')).toThrow(/not found/i);
   });
 
-  
-
   it('deleteDecision throws when the id does not exist', () => {
     expect(() => service.deleteDecision('completely-unknown-id')).toThrow(/not found/i);
   });
@@ -223,8 +196,6 @@ describe('DecisionService', () => {
     service.deleteDecision(node.id);
     expect(db.getNodeById(node.id)).toBeUndefined();
   });
-
-  
 
   it('getDecisions with type filter returns only nodes matching that type', async () => {
     await service.createDecision({ title: 'Constraint A', rationale: 'Rationale A', type: 'constraint' });

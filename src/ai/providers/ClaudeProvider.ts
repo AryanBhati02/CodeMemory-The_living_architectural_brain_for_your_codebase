@@ -1,22 +1,9 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
 import Anthropic from '@anthropic-ai/sdk';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
-
 
 interface ExtendedThinkingParams {
   thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
@@ -25,10 +12,8 @@ interface ExtendedThinkingParams {
 type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
 type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
 
-
 interface ThinkingBlock { type: 'thinking'; thinking: string }
 type ResponseBlock = Anthropic.ContentBlock | ThinkingBlock;
-
 
 interface AnthropicUsageWithCaching {
   input_tokens: number;
@@ -59,8 +44,7 @@ export class ClaudeProvider implements IAIProvider {
     ],
   };
 
-  
-  validateKey(apiKey: string): { valid: boolean; reason?: string } {
+    validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey?.startsWith('sk-ant-')) {
       return { valid: false, reason: 'Anthropic keys begin with "sk-ant-".' };
     }
@@ -70,8 +54,7 @@ export class ClaudeProvider implements IAIProvider {
     return { valid: true };
   }
 
-  
-  async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
+    async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
     const requestModel = options.model ?? this.capabilities.defaultModel;

@@ -1,18 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -22,8 +8,6 @@ import {
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
-
-
 
 interface DecisionPayload {
   title: string;
@@ -50,8 +34,6 @@ interface NodeRow {
   id: string; type: string; payload: string; embedding: Buffer | null;
   created_at: string; updated_at: string; author_name: string; author_email: string;
 }
-
-
 
 function resolveDbPath(): string {
   return process.env.CODEMEMORY_DB_PATH
@@ -269,8 +251,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     db.close();
   }
 });
-
-
 
 async function main(): Promise<void> {
   const dbPath = resolveDbPath();

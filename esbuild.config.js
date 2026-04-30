@@ -15,7 +15,7 @@ const extensionEntry = {
   ...shared,
   entryPoints: ['src/extension.ts'],
   outfile: 'dist/extension.js',
-  external: ['vscode', 'better-sqlite3', '@xenova/transformers'],
+  external: ['vscode', 'better-sqlite3', '@xenova/transformers', '@libsql/client'],
 };
 
 const workerEntry = {

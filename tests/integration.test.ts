@@ -1,13 +1,6 @@
 
-
-
-
-
-
-
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SemanticRanker } from '../src/search/SemanticRanker';
-
 
 vi.mock('vscode', () => ({
   EventEmitter: class {
@@ -24,8 +17,6 @@ import { PromptBuilder }    from '../src/ai/pipeline/PromptBuilder';
 import { AIProviderError }  from '../src/ai/providers/IAIProvider';
 import { validatePayload }  from '../src/decisions/decisionService';
 import type { DecisionNode } from '../src/graph/types';
-
-
 
 function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): DecisionNode {
   return {
@@ -47,8 +38,6 @@ function makeDecision(overrides: Partial<DecisionNode['payload']> = {}): Decisio
     authorEmail: 'test@example.com',
   };
 }
-
-
 
 describe('ProviderManager', () => {
   beforeEach(() => ProviderManager.resetInstance());
@@ -112,8 +101,6 @@ describe('ProviderManager', () => {
   });
 });
 
-
-
 describe('CacheEngine', () => {
   it('returns null on empty cache', () => {
     const cache = new CacheEngine(300);
@@ -171,8 +158,6 @@ describe('CacheEngine', () => {
   });
 });
 
-
-
 describe('computeGraphHash', () => {
   it('same decisions produce same hash', () => {
     const d = makeDecision();
@@ -189,8 +174,6 @@ describe('computeGraphHash', () => {
     expect(computeGraphHash([])).toBeTruthy();
   });
 });
-
-
 
 describe('PromptBuilder', () => {
   it('builds prompt containing decision title', () => {
@@ -240,8 +223,6 @@ describe('PromptBuilder', () => {
   });
 });
 
-
-
 describe('AIProviderError', () => {
   it('constructs correctly', () => {
     const err = new AIProviderError('Rate limited', 'RATE_LIMIT', 'claude', true, 429);
@@ -257,8 +238,6 @@ describe('AIProviderError', () => {
     expect(err.retryable).toBe(false);
   });
 });
-
-
 
 describe('validatePayload', () => {
   it('passes valid payload', () => {
@@ -292,8 +271,6 @@ describe('validatePayload', () => {
     expect(errors.some(e => e.field === 'title')).toBe(true);
   });
 });
-
-
 
 describe('SemanticRanker', () => {
   let ranker: SemanticRanker;

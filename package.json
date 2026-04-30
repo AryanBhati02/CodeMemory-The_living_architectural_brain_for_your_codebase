@@ -102,6 +102,18 @@
         "title": "Discover Decisions from Git History",
         "category": "CodeMemory",
         "icon": "$(git-commit)"
+      },
+      {
+        "command": "codememory.configureSync",
+        "title": "Configure Team Sync",
+        "category": "CodeMemory",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "codememory.syncNow",
+        "title": "Sync Now",
+        "category": "CodeMemory",
+        "icon": "$(sync)"
       }
     ],
     "menus": {
@@ -209,6 +221,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable drift detection — warns when saved code diverges from linked constraint decisions."
+        },
+        "codememory.tursoUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Turso database URL for team sync (e.g. libsql://your-db.turso.io)."
+        },
+        "codememory.syncEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable periodic sync with a shared Turso database for team collaboration."
         }
       }
     }
@@ -232,6 +254,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.21.0",
+    "@libsql/client": "^0.17.3",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@xenova/transformers": "^2.17.0",
     "better-sqlite3": "^9.6.0",

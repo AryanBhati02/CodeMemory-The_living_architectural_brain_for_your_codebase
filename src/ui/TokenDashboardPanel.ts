@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import { getNonce } from '../utils/getNonce';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
@@ -42,7 +36,6 @@ export class TokenDashboardPanel implements vscode.Disposable {
     this.panel.webview.html = this._buildHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
-    
     this.refreshInterval = setInterval(() => this._pushStats(), 2000);
     this._pushStats();
 

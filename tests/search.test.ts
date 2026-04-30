@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('vscode', () => ({
@@ -21,8 +14,6 @@ import { DecisionService } from '../src/decisions/decisionService';
 import { CodeMemoryDatabase } from '../src/db/database';
 import type { EmbeddingQueue } from '../src/workers/embeddingQueue';
 
-
-
 function makeBrokenQueue(): Pick<EmbeddingQueue, 'enqueue' | 'embedText' | 'onEmbeddingComplete'> {
   return {
     enqueue: vi.fn().mockResolvedValue(undefined),
@@ -30,8 +21,6 @@ function makeBrokenQueue(): Pick<EmbeddingQueue, 'enqueue' | 'embedText' | 'onEm
     onEmbeddingComplete: (_listener: Function) => ({ dispose: () => {} }),
   };
 }
-
-
 
 describe('hybridSearch — graceful fallback without embeddings', () => {
   let db: CodeMemoryDatabase;
@@ -41,7 +30,6 @@ describe('hybridSearch — graceful fallback without embeddings', () => {
     db = new CodeMemoryDatabase(':memory:');
     service = new DecisionService(db, makeBrokenQueue() as unknown as EmbeddingQueue);
 
-    
     await service.createDecision({
       title: 'Use fetch over axios',
       rationale: 'Reduces bundle size; fetch is available natively in modern runtimes.',

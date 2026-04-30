@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -29,8 +18,7 @@ export class ProviderDrawer implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
 
-  
-  private readonly _onProviderChanged = new vscode.EventEmitter<string>();
+    private readonly _onProviderChanged = new vscode.EventEmitter<string>();
   readonly onProviderChanged = this._onProviderChanged.event;
 
   constructor(

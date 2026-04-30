@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import type { DecisionNode } from '../graph/types';
 

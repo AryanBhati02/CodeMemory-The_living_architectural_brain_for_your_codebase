@@ -1,31 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import { logger }                 from './utils/logger';
 import { SecretStorageService }   from './storage/secretStorage';
@@ -44,67 +17,58 @@ import { GraphPanel }             from './ui/GraphPanel';
 import { DecisionDetailPanel }    from './ui/DecisionDetailPanel';
 import { StuckDetector }          from './proactive/StuckDetector';
 import { DriftDetector }          from './proactive/DriftDetector';
+import { TursoSync }              from './db/TursoSync';
 import { registerAllCommands }    from './commands/registry';
-
-
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.info('Extension', 'Activating — all phases unified');
 
-  
   const secrets = new SecretStorageService(context);
 
-  
   const config = SettingsManager.get();
 
-  
   const providerManager = ProviderManager.getInstance();
   
   const savedProvider = secrets.getActiveProvider() ?? config.activeProviderId;
   try { providerManager.setActiveProvider(savedProvider); } catch {  }
 
-  
   const eventBus = new EventBus();
 
-  
   const dbManager = new DatabaseManager(context);
   const db = dbManager.getDatabase();
 
-  
   const embeddingQueue = new EmbeddingQueue(db, context.extensionPath);
   embeddingQueue.start().catch((err) => {
     logger.warn('Extension', `Embedding worker failed to start: ${String(err)}`);
   });
 
-  
   const decisionService = new DecisionService(db, embeddingQueue);
 
-  
   const aiPipeline = new AIPipeline(providerManager, secrets);
 
-  
   const treeProvider = new DecisionTreeProvider(decisionService);
   const treeView = vscode.window.createTreeView('codememory.decisionsTree', {
     treeDataProvider: treeProvider,
     showCollapseAll:  true,
   });
 
-  
   const decorationEngine = new DecorationEngine(context.extensionUri);
   
   decorationEngine.updateDecisions(decisionService.getDecisions());
 
-  
   const providerDrawer = new ProviderDrawer(providerManager, secrets, context.extensionUri);
 
-  
   let tokenPanel: TokenDashboardPanel | undefined;
+  let tursoSync: TursoSync | null = null;
   registerAllCommands({
     context,
     decisionService,
     pipeline:       aiPipeline,
     treeProvider,
     providerDrawer,
+    secrets,
+    getTursoSync:   () => tursoSync,
+    setTursoSync:   (sync) => { tursoSync = sync; },
     getTokenPanel:  () => tokenPanel,
     showTokenPanel: () => {
       tokenPanel = TokenDashboardPanel.createOrShow(context.extensionUri, aiPipeline);
@@ -125,71 +89,90 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     },
   });
 
-  
   const statusBar = createStatusBar();
   const initialStats = decisionService.getGraphStats();
   updateStatusBar(statusBar, providerManager, { total: initialStats.totalDecisions, embedded: initialStats.embeddingsReady });
   context.subscriptions.push(statusBar);
 
-  
-
-  
   decisionService.onGraphChange((e) => {
     eventBus.fireGraphChange(e);
     aiPipeline.invalidateCache(`graph-${e.kind}:${e.nodeId}`);
     treeProvider.refresh();
     decorationEngine.updateDecisions(decisionService.getDecisions());
     const graphStats = decisionService.getGraphStats();
-    updateStatusBar(statusBar, providerManager, { total: graphStats.totalDecisions, embedded: graphStats.embeddingsReady });
+    updateStatusBar(statusBar, providerManager, { total: graphStats.totalDecisions, embedded: graphStats.embeddingsReady }, tursoSync);
+
+    if (tursoSync?.isConnected) {
+      if (e.kind === 'delete') {
+        tursoSync.pushDeleteNode(e.nodeId).catch(() => {});
+      } else {
+        const node = decisionService.getDecision(e.nodeId);
+        if (node) tursoSync.pushNode(node).catch(() => {});
+      }
+    }
   });
 
-  
   embeddingQueue.onEmbeddingComplete(() => {
     treeProvider.refresh();
     const embedStats = decisionService.getGraphStats();
-    updateStatusBar(statusBar, providerManager, { total: embedStats.totalDecisions, embedded: embedStats.embeddingsReady });
+    updateStatusBar(statusBar, providerManager, { total: embedStats.totalDecisions, embedded: embedStats.embeddingsReady }, tursoSync);
   });
 
-  
   providerDrawer.onProviderChanged((newId) => {
     eventBus.fireProviderChange({ previousProviderId: providerManager.getActiveProviderId(), newProviderId: newId });
     aiPipeline.invalidateCache('provider-switch');
     const switchStats = decisionService.getGraphStats();
-    updateStatusBar(statusBar, providerManager, { total: switchStats.totalDecisions, embedded: switchStats.embeddingsReady });
+    updateStatusBar(statusBar, providerManager, { total: switchStats.totalDecisions, embedded: switchStats.embeddingsReady }, tursoSync);
   });
 
-  
   context.subscriptions.push(
     SettingsManager.onDidChange(() => {
       const cfg = SettingsManager.get();
       try { providerManager.setActiveProvider(cfg.activeProviderId); } catch {}
       const cfgStats = decisionService.getGraphStats();
-      updateStatusBar(statusBar, providerManager, { total: cfgStats.totalDecisions, embedded: cfgStats.embeddingsReady });
+      updateStatusBar(statusBar, providerManager, { total: cfgStats.totalDecisions, embedded: cfgStats.embeddingsReady }, tursoSync);
     })
   );
 
-  
   if (config.stuckDetectorEnabled) {
     const stuckDetector = new StuckDetector(decisionService);
     context.subscriptions.push(stuckDetector);
   }
 
-  
   if (config.driftDetectorEnabled) {
     const driftDetector = new DriftDetector(decisionService, embeddingQueue, decisionService.getRanker());
     context.subscriptions.push(driftDetector);
   }
 
-  
+  if (config.syncEnabled && config.tursoUrl) {
+    const tursoToken = await secrets.getTursoToken();
+    if (tursoToken) {
+      tursoSync = new TursoSync(db, config.tursoUrl, tursoToken, context.globalState);
+      tursoSync.connect()
+        .then(() => {
+          tursoSync!.startPeriodicSync();
+          tursoSync!.onSyncStatusChange(() => {
+            const syncStats = decisionService.getGraphStats();
+            updateStatusBar(statusBar, providerManager, { total: syncStats.totalDecisions, embedded: syncStats.embeddingsReady }, tursoSync);
+          });
+          const syncInitStats = decisionService.getGraphStats();
+          updateStatusBar(statusBar, providerManager, { total: syncInitStats.totalDecisions, embedded: syncInitStats.embeddingsReady }, tursoSync);
+          logger.info('Extension', 'Turso sync started');
+        })
+        .catch((err) => {
+          logger.warn('Extension', `Turso sync failed to start: ${String(err)}`);
+        });
+    }
+  }
+
   context.subscriptions.push(
     secrets, dbManager, embeddingQueue, decisionService,
     eventBus, treeView, decorationEngine, providerDrawer,
+    { dispose: () => tursoSync?.dispose() },
   );
 
   logger.info('Extension', 'Activation complete');
 }
-
-
 
 function createStatusBar(): vscode.StatusBarItem {
   const item = vscode.window.createStatusBarItem('codememory.status', vscode.StatusBarAlignment.Right, 100);
@@ -199,17 +182,32 @@ function createStatusBar(): vscode.StatusBarItem {
   return item;
 }
 
-function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager, stats?: { total: number; embedded: number }): void {
+function updateStatusBar(
+  item: vscode.StatusBarItem,
+  pm: ProviderManager,
+  stats?: { total: number; embedded: number },
+  sync?: TursoSync | null,
+): void {
   const provider = pm.getActiveProvider();
+  let text = `$(sparkle) ${provider.name}`;
   if (stats) {
-    item.text = `$(sparkle) ${provider.name} · ${stats.total} decisions · ${stats.embedded}/${stats.total} embedded`;
-  } else {
-    item.text = `$(sparkle) ${provider.name}`;
+    text += ` · ${stats.total} decisions · ${stats.embedded}/${stats.total} embedded`;
   }
+  if (sync?.isConnected) {
+    const status = sync.getStatus();
+    if (status.lastError) {
+      text += ' · $(warning) sync error';
+    } else if (status.lastSyncAt) {
+      const agoMs = Date.now() - status.lastSyncAt.getTime();
+      const agoMin = Math.floor(agoMs / 60_000);
+      text += agoMin < 1 ? ' · $(cloud) synced just now' : ` · $(cloud) synced ${agoMin}m ago`;
+    } else {
+      text += ' · $(cloud) sync active';
+    }
+  }
+  item.text = text;
   item.tooltip = `CodeMemory: ${provider.name} active — click to change`;
 }
-
-
 
 export function deactivate(): void {
   

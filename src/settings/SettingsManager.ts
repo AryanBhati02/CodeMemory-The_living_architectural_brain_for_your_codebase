@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import * as vscode from 'vscode';
 
 export interface CodeMemoryConfig {
@@ -13,6 +7,8 @@ export interface CodeMemoryConfig {
   cacheTtlSeconds: number;
   stuckDetectorEnabled: boolean;
   driftDetectorEnabled: boolean;
+  tursoUrl: string;
+  syncEnabled: boolean;
 }
 
 export class SettingsManager {
@@ -26,6 +22,8 @@ export class SettingsManager {
       cacheTtlSeconds:      cfg.get<number>('cacheTtlSeconds',      300),
       stuckDetectorEnabled: cfg.get<boolean>('stuckDetectorEnabled', true),
       driftDetectorEnabled: cfg.get<boolean>('driftDetectorEnabled', true),
+      tursoUrl:             cfg.get<string>('tursoUrl',             ''),
+      syncEnabled:          cfg.get<boolean>('syncEnabled',          false),
     };
   }
 

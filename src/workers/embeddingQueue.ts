@@ -1,13 +1,4 @@
 
-
-
-
-
-
-
-
-
-
 import { Worker } from 'worker_threads';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -37,14 +28,12 @@ export class EmbeddingQueue implements vscode.Disposable {
     private readonly extensionPath: string
   ) {}
 
-  
-  async start(): Promise<void> {
+    async start(): Promise<void> {
     await this._spawnWorker();
     this._scheduleBackfill();
   }
 
-  
-  embedText(text: string): Promise<Float32Array> {
+    embedText(text: string): Promise<Float32Array> {
     if (!this.worker || !this.workerReady) {
       return Promise.reject(new Error('Embedding worker not ready'));
     }
@@ -56,8 +45,7 @@ export class EmbeddingQueue implements vscode.Disposable {
     });
   }
 
-  
-  enqueue(nodeId: string, text: string): Promise<void> {
+    enqueue(nodeId: string, text: string): Promise<void> {
     if (!this.worker || !this.workerReady) {
       return Promise.resolve(); 
     }
@@ -140,8 +128,7 @@ export class EmbeddingQueue implements vscode.Disposable {
     }, 3000);
   }
 
-  
-  dispose(): void {
+    dispose(): void {
     this._disposed = true;
     this.worker?.terminate();
     this.worker = null;

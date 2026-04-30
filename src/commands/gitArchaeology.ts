@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import { execSync } from 'child_process';
 import type { DecisionService } from '../decisions/decisionService';
@@ -13,13 +6,9 @@ import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { DecisionType } from '../graph/types';
 
-
-
 interface GitCommit { hash: string; subject: string; body: string }
 interface ExtractedDecision { title: string; rationale: string; type: DecisionType }
 interface CandidatePickItem extends vscode.QuickPickItem { decision: ExtractedDecision }
-
-
 
 const ARCH_KEYWORDS = [
   'because', 'instead of', 'avoid', 'decided', 'refactor',
@@ -35,8 +24,6 @@ const EXTRACTION_PROMPT = (subject: string, body: string) =>
   `{ "title": string (max 80 chars), "rationale": string, "type": "pattern"|"constraint"|"convention"|"why" }\n` +
   `Or return: { "skip": true } if no architectural decision is present.\n\n` +
   `Commit: ${subject}\n${body}`;
-
-
 
 function getWorkspaceRoot(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -124,8 +111,6 @@ async function runWithConcurrency<T, R>(
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
   return results;
 }
-
-
 
 export async function discoverFromGitCommand(
   decisionService: DecisionService,
