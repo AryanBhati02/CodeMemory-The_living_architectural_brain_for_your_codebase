@@ -12,9 +12,9 @@ export class ProviderManager {
   private readonly providers = new Map<string, IAIProvider>();
   private activeProviderId = 'claude';
 
+  
 
-
-      static getInstance(): ProviderManager {
+    static getInstance(): ProviderManager {
     if (!ProviderManager.instance) {
       ProviderManager.instance = new ProviderManager();
       ProviderManager.instance._registerDefaults();
@@ -26,9 +26,9 @@ export class ProviderManager {
     ProviderManager.instance = undefined;
   }
 
+  
 
-
-      register(provider: IAIProvider): void {
+    register(provider: IAIProvider): void {
     this.providers.set(provider.id, provider);
   }
 
@@ -39,9 +39,9 @@ export class ProviderManager {
     this.providers.delete(providerId);
   }
 
+  
 
-
-      setActiveProvider(providerId: string): void {
+    setActiveProvider(providerId: string): void {
     if (!this.providers.has(providerId)) {
       throw new Error(
         `[ProviderManager] Provider "${providerId}" not registered. Available: ${[...this.providers.keys()].join(', ')}`
@@ -81,9 +81,9 @@ export class ProviderManager {
     return provider.validateKey(apiKey);
   }
 
+  
 
-
-    private _registerDefaults(): void {
+  private _registerDefaults(): void {
     this.register(new ClaudeProvider());
     this.register(new OpenAIProvider());
     this.register(new GeminiProvider());

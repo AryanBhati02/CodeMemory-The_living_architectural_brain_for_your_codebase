@@ -4,9 +4,9 @@ import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
 import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { TokenDashboardPanel as TDP } from '../ui/TokenDashboardPanel';
-import type { RelationType } from '../graph/types';
+import type { RelationType, DecisionType } from '../graph/types';
 
-interface DecisionTypeItem extends vscode.QuickPickItem { id: string }
+interface DecisionTypeItem extends vscode.QuickPickItem { id: DecisionType | string }
 interface DecisionPickItem  extends vscode.QuickPickItem { id: string }
 
 
@@ -51,7 +51,7 @@ export async function captureDecisionCommand(
       await decisionService.createDecision({
         title,
         rationale,
-        type: typeChoice.id as any,
+        type: typeChoice.id as DecisionType,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
         tags: [],
@@ -122,8 +122,8 @@ export async function askAICommand(
   const activeFile  = editor?.document.uri.fsPath;
   const decisions   = decisionService.getDecisions();
 
-
-    const panel = vscode.window.createWebviewPanel(
+  
+  const panel = vscode.window.createWebviewPanel(
     'codememory.aiResponse',
     'CodeMemory: AI Response',
     vscode.ViewColumn.Beside,
@@ -255,7 +255,7 @@ export async function editDecisionCommand(
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
-    type:   typePick.id as any,
+    type:   typePick.id as DecisionType,
     status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);

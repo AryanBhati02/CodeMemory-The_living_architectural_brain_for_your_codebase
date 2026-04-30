@@ -10,8 +10,8 @@ interface ExtendedThinkingParams {
   thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
   output_config?: { effort: 'high' };
 }
-type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
-type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
+type ExtendedMessageParams = Omit<Anthropic.MessageCreateParamsNonStreaming, 'thinking' | 'output_config'> & ExtendedThinkingParams;
+type ExtendedStreamParams  = Omit<Anthropic.MessageStreamParams, 'thinking' | 'output_config'> & ExtendedThinkingParams;
 
 
 interface ThinkingBlock { type: 'thinking'; thinking: string }
@@ -82,14 +82,14 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          body.thinking    = { type: 'adaptive' } as any;
-          body.output_config = { effort: 'high' } as any;
+          body.thinking    = { type: 'adaptive' };
+          body.output_config = { effort: 'high' };
         } else {
-          body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 } as any;
+          body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
         }
       }
 
-      const msg = await client.messages.create(body);
+      const msg = await client.messages.create(body as any);
 
       let content = '';
       let thinking = '';
@@ -117,7 +117,7 @@ export class ClaudeProvider implements IAIProvider {
     }
   }
 
-  
+
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
@@ -143,14 +143,14 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          params.thinking      = { type: 'adaptive' } as any;
-          params.output_config = { effort: 'high' } as any;
+          params.thinking      = { type: 'adaptive' };
+          params.output_config = { effort: 'high' };
         } else {
-          params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 } as any;
+          params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
         }
       }
 
-      const stream = client.messages.stream(params);
+      const stream = client.messages.stream(params as any);
 
       let fullContent = '';
       for await (const event of stream) {

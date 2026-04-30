@@ -26,7 +26,8 @@ export interface CommandDeps {
   providerDrawer:  ProviderDrawer;
   getTokenPanel:   () => TokenDashboardPanel | undefined;
   showTokenPanel:  () => void;
-  showGraphPanel:  () => void;
+  showGraphPanel:      () => void;
+  showDecisionDetail:  (nodeId: string) => void;
 }
 
 export function registerAllCommands(deps: CommandDeps): void {
@@ -81,7 +82,13 @@ export function registerAllCommands(deps: CommandDeps): void {
     ],
     [
       'codememory.navigateToDecision',
-      (node: any) => navigateToDecisionCommand(node),
+      (node: any) => {
+        if (node?.id) {
+          deps.showDecisionDetail(node.id);
+        } else {
+          navigateToDecisionCommand(node);
+        }
+      },
     ],
     [
       'codememory.editDecision',

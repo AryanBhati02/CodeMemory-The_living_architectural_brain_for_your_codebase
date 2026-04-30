@@ -14,9 +14,9 @@ export class SecretStorageService implements vscode.Disposable {
     this.globalState = context.globalState;
   }
 
+  
 
-
-      async storeKey(providerId: string, apiKey: string): Promise<void> {
+    async storeKey(providerId: string, apiKey: string): Promise<void> {
     if (!apiKey?.trim()) {
       throw new Error(`Cannot store empty API key for provider: ${providerId}`);
     }
@@ -36,9 +36,9 @@ export class SecretStorageService implements vscode.Disposable {
     await this.secrets.delete(`${KEY_PREFIX}.${providerId}`);
   }
 
+  
 
-
-      async setActiveProvider(providerId: string): Promise<void> {
+    async setActiveProvider(providerId: string): Promise<void> {
     await this.globalState.update(ACTIVE_PROVIDER_KEY, providerId);
   }
 
@@ -58,9 +58,9 @@ export class SecretStorageService implements vscode.Disposable {
     return this.secrets.onDidChange(listener);
   }
 
+  
 
-
-      static maskKey(apiKey: string): string {
+    static maskKey(apiKey: string): string {
     if (apiKey.length <= 8) return '•'.repeat(apiKey.length);
     const visible = apiKey.slice(-4);
     const masked = '•'.repeat(Math.min(apiKey.length - 4, 24));

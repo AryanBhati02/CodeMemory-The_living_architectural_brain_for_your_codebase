@@ -36,8 +36,8 @@ export class TokenDashboardPanel implements vscode.Disposable {
     this.panel.webview.html = this._buildHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
-
-        this.refreshInterval = setInterval(() => this._pushStats(), 2000);
+    
+    this.refreshInterval = setInterval(() => this._pushStats(), 2000);
     this._pushStats();
 
     this.panel.webview.onDidReceiveMessage(

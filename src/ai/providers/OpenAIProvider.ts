@@ -65,7 +65,7 @@ export class OpenAIProvider implements IAIProvider {
     }
   }
 
-  
+
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new OpenAI({ apiKey });
     const t0 = Date.now();
@@ -96,7 +96,7 @@ export class OpenAIProvider implements IAIProvider {
 
       return {
         content: fullContent,
-        usage: { inputTokens: 0, outputTokens: 0 }, 
+        usage: { inputTokens: 0, outputTokens: 0 },
         fromCache: false,
         providerId: this.id,
         latencyMs: Date.now() - t0,

@@ -14,6 +14,7 @@ import { DecorationEngine }       from './decorations/DecorationEngine';
 import { ProviderDrawer }         from './ui/ProviderDrawer';
 import { TokenDashboardPanel }    from './ui/TokenDashboardPanel';
 import { GraphPanel }             from './ui/GraphPanel';
+import { DecisionDetailPanel }    from './ui/DecisionDetailPanel';
 import { registerAllCommands }    from './commands/registry';
 
 
@@ -21,54 +22,54 @@ import { registerAllCommands }    from './commands/registry';
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.info('Extension', 'Activating — all phases unified');
 
+  
+  const secrets = new SecretStorageService(context);
 
-    const secrets = new SecretStorageService(context);
+  
+  const config = SettingsManager.get();
 
-
-    const config = SettingsManager.get();
-
-
-    const providerManager = ProviderManager.getInstance();
-
-    const savedProvider = secrets.getActiveProvider() ?? config.activeProviderId;
+  
+  const providerManager = ProviderManager.getInstance();
+  
+  const savedProvider = secrets.getActiveProvider() ?? config.activeProviderId;
   try { providerManager.setActiveProvider(savedProvider); } catch {  }
 
+  
+  const eventBus = new EventBus();
 
-    const eventBus = new EventBus();
-
-
-    const dbManager = new DatabaseManager(context);
+  
+  const dbManager = new DatabaseManager(context);
   const db = dbManager.getDatabase();
 
-
-    const embeddingQueue = new EmbeddingQueue(db, context.extensionPath);
+  
+  const embeddingQueue = new EmbeddingQueue(db, context.extensionPath);
   embeddingQueue.start().catch((err) => {
     logger.warn('Extension', `Embedding worker failed to start: ${String(err)}`);
   });
 
+  
+  const decisionService = new DecisionService(db, embeddingQueue);
 
-    const decisionService = new DecisionService(db, embeddingQueue);
+  
+  const aiPipeline = new AIPipeline(providerManager, secrets);
 
-
-    const aiPipeline = new AIPipeline(providerManager, secrets);
-
-
-    const treeProvider = new DecisionTreeProvider(decisionService);
+  
+  const treeProvider = new DecisionTreeProvider(decisionService);
   const treeView = vscode.window.createTreeView('codememory.decisionsTree', {
     treeDataProvider: treeProvider,
     showCollapseAll:  true,
   });
 
+  
+  const decorationEngine = new DecorationEngine(context.extensionUri);
+  
+  decorationEngine.updateDecisions(decisionService.getDecisions());
 
-    const decorationEngine = new DecorationEngine(context.extensionUri);
+  
+  const providerDrawer = new ProviderDrawer(providerManager, secrets, context.extensionUri);
 
-    decorationEngine.updateDecisions(decisionService.getDecisions());
-
-
-    const providerDrawer = new ProviderDrawer(providerManager, secrets, context.extensionUri);
-
-
-    let tokenPanel: TokenDashboardPanel | undefined;
+  
+  let tokenPanel: TokenDashboardPanel | undefined;
   registerAllCommands({
     context,
     decisionService,
@@ -83,39 +84,45 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       GraphPanel.createOrShow(context.extensionUri, decisionService, (nodeId) => {
         const node = decisionService.getDecision(nodeId);
         if (node) {
-          vscode.window.showInformationMessage(`Decision: ${node.payload.title}`);
+          DecisionDetailPanel.show(node, decisionService, context.extensionUri);
         }
       });
     },
+    showDecisionDetail: (nodeId: string) => {
+      const node = decisionService.getDecision(nodeId);
+      if (node) {
+        DecisionDetailPanel.show(node, decisionService, context.extensionUri);
+      }
+    },
   });
 
-
-    const statusBar = createStatusBar();
+  
+  const statusBar = createStatusBar();
   updateStatusBar(statusBar, providerManager);
   context.subscriptions.push(statusBar);
 
+  
 
-
-
-      decisionService.onGraphChange((e) => {
+  
+  decisionService.onGraphChange((e) => {
     eventBus.fireGraphChange(e);
     aiPipeline.invalidateCache(`graph-${e.kind}:${e.nodeId}`);
     treeProvider.refresh();
     decorationEngine.updateDecisions(decisionService.getDecisions());
   });
 
+  
+  embeddingQueue.onEmbeddingComplete(() => treeProvider.refresh());
 
-    embeddingQueue.onEmbeddingComplete(() => treeProvider.refresh());
-
-
-    providerDrawer.onProviderChanged((newId) => {
+  
+  providerDrawer.onProviderChanged((newId) => {
     eventBus.fireProviderChange({ previousProviderId: providerManager.getActiveProviderId(), newProviderId: newId });
     aiPipeline.invalidateCache('provider-switch');
     updateStatusBar(statusBar, providerManager);
   });
 
-
-    context.subscriptions.push(
+  
+  context.subscriptions.push(
     SettingsManager.onDidChange(() => {
       const cfg = SettingsManager.get();
       try { providerManager.setActiveProvider(cfg.activeProviderId); } catch {}
@@ -123,8 +130,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-
-    context.subscriptions.push(
+  
+  context.subscriptions.push(
     secrets, dbManager, embeddingQueue, decisionService,
     eventBus, treeView, decorationEngine, providerDrawer,
   );
@@ -151,6 +158,6 @@ function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager): void 
 
 
 export function deactivate(): void {
-
-    ProviderManager.resetInstance();
+  
+  ProviderManager.resetInstance();
 }

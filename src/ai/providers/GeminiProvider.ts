@@ -81,7 +81,7 @@ export class GeminiProvider implements IAIProvider {
     }
   }
 
-  
+
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const t0 = Date.now();
     try {

@@ -99,9 +99,9 @@ export class CodeMemoryDatabase {
     if (!v) this.db.prepare("INSERT INTO schema_meta(key,value) VALUES('version',?)").run(SCHEMA_VERSION);
   }
 
+  
 
-
-      insertNode(node: DecisionNode): void {
+    insertNode(node: DecisionNode): void {
     this.db.prepare(`
       INSERT INTO nodes (id,type,payload,embedding,created_at,updated_at,author_name,author_email)
       VALUES (?,?,?,?,?,?,?,?)
@@ -140,8 +140,6 @@ export class CodeMemoryDatabase {
     searchNodesFts(query: string, limit = 20): DecisionNode[] {
     const safe = query.replace(/['\"*]/g, ' ').trim();
     if (!safe) return this.getAllNodes().slice(0, limit);
-
-
 
     return (this.db.prepare(`
       SELECT * FROM nodes WHERE rowid IN (

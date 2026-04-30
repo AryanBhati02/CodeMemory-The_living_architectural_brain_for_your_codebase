@@ -157,8 +157,8 @@ describe('CacheEngine', () => {
   });
 
   it('returns null after TTL expires', async () => {
-
-        const cache = new CacheEngine(0.001);
+    
+    const cache = new CacheEngine(0.001);
     cache.set('hash1', 'claude', 'system prompt text');
     await new Promise(r => setTimeout(r, 20)); 
     expect(cache.get('hash1', 'claude')).toBeNull();
@@ -221,8 +221,8 @@ describe('PromptBuilder', () => {
       makeDecision({ title: `Decision ${i}` })
     );
     const prompt = PromptBuilder.build({ decisions, maxDecisions: 5 });
-
-        const matches = (prompt.match(/Decision \d+/g) ?? []).length;
+    
+    const matches = (prompt.match(/Decision \d+/g) ?? []).length;
     expect(matches).toBe(5);
   });
 
@@ -372,11 +372,11 @@ describe('SemanticRanker', () => {
   it('cosine handles zero vectors without throwing', () => {
     const zero = new Float32Array([0, 0, 0]);
     const v    = new Float32Array([1, 0, 0]);
-
-        expect(() => ranker.cosine(zero, v)).not.toThrow();
+    
+    expect(() => ranker.cosine(zero, v)).not.toThrow();
     expect(() => ranker.cosine(v, zero)).not.toThrow();
     expect(() => ranker.cosine(zero, zero)).not.toThrow();
-
-        expect(Number.isFinite(ranker.cosine(zero, v))).toBe(true);
+    
+    expect(Number.isFinite(ranker.cosine(zero, v))).toBe(true);
   });
 });

@@ -58,9 +58,9 @@ export class DecisionService implements vscode.Disposable {
     });
   }
 
+  
 
-
-      async createDecision(
+    async createDecision(
     partial: Omit<DecisionPayload, 'status' | 'filePaths' | 'tags'> & { status?: DecisionPayload['status']; filePaths?: string[]; tags?: string[] }
   ): Promise<DecisionNode> {
     const errors = validatePayload(partial);
@@ -151,13 +151,13 @@ export class DecisionService implements vscode.Disposable {
       const queryVec = await this.embeddingQueue.embedText(query);
       semanticIds = this.ranker.rank(queryVec, 20).map(r => r.id);
     } catch {
-
-          }
+      
+    }
 
     const keywordIds = this.db.searchNodesFts(query, 20).map(n => n.id);
 
-
-        const scores = new Map<string, number>();
+    
+    const scores = new Map<string, number>();
     semanticIds.forEach((id, i) => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
     keywordIds.forEach((id, i)  => scores.set(id, (scores.get(id) ?? 0) + 1 / (i + 60)));
 
@@ -169,9 +169,9 @@ export class DecisionService implements vscode.Disposable {
     return this.db.getNodesByIds(rankedIds);
   }
 
+  
 
-
-      createEdge(
+    createEdge(
     fromId: string, toId: string, relationType: RelationType,
     options: { weight?: number; note?: string } = {}
   ): DecisionEdge {
@@ -226,9 +226,9 @@ export class DecisionService implements vscode.Disposable {
     this._emitChange('insert', 'batch-import');
   }
 
+  
 
-
-    private _emitChange(kind: GraphChangeEvent['kind'], nodeId: string): void {
+  private _emitChange(kind: GraphChangeEvent['kind'], nodeId: string): void {
     this._onGraphChange.fire({ kind, nodeId, timestamp: Date.now() });
   }
 

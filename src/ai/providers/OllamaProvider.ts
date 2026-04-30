@@ -147,7 +147,7 @@ export class OllamaProvider implements IAIProvider {
         }
       }
 
-      
+
       if (buffer.trim()) {
         this._processStreamLine(buffer, (delta, isDone) => {
           if (!isDone) fullContent += delta;
@@ -175,7 +175,7 @@ export class OllamaProvider implements IAIProvider {
     try {
       parsed = JSON.parse(trimmed);
     } catch {
-      return; 
+      return;
     }
     if (parsed.done) {
       emit('', true);
