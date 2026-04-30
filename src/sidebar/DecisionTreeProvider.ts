@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import { DecisionTreeItem } from './DecisionTreeItem';
 import type { DecisionNode, DecisionType } from '../graph/types';

@@ -1,16 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
 import Anthropic from '@anthropic-ai/sdk';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
@@ -19,8 +7,8 @@ import {
 
 
 interface ExtendedThinkingParams {
-  thinking?: any;
-  output_config?: any;
+  thinking?: { type: 'adaptive' } | { type: 'enabled'; budget_tokens: number };
+  output_config?: { effort: 'high' };
 }
 type ExtendedMessageParams = Anthropic.MessageCreateParamsNonStreaming & ExtendedThinkingParams;
 type ExtendedStreamParams  = Anthropic.MessageStreamParams & ExtendedThinkingParams;
@@ -59,8 +47,7 @@ export class ClaudeProvider implements IAIProvider {
     ],
   };
 
-  
-  validateKey(apiKey: string): { valid: boolean; reason?: string } {
+    validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey?.startsWith('sk-ant-')) {
       return { valid: false, reason: 'Anthropic keys begin with "sk-ant-".' };
     }
@@ -70,8 +57,7 @@ export class ClaudeProvider implements IAIProvider {
     return { valid: true };
   }
 
-  
-  async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
+    async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new Anthropic({ apiKey });
     const t0 = Date.now();
     const requestModel = options.model ?? this.capabilities.defaultModel;
@@ -96,7 +82,7 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          body.thinking    = { type: 'adaptive' };
+          body.thinking    = { type: 'adaptive' } as any;
           body.output_config = { effort: 'high' };
         } else {
           body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
@@ -157,7 +143,7 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          params.thinking      = { type: 'adaptive' };
+          params.thinking      = { type: 'adaptive' } as any;
           params.output_config = { effort: 'high' };
         } else {
           params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };

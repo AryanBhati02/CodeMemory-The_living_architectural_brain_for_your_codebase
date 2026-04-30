@@ -1,19 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { ProviderManager } from '../providers/ProviderManager';
 import { CacheEngine, computeGraphHash } from '../cache/CacheEngine';
 import { PromptBuilder } from './PromptBuilder';
@@ -88,8 +73,7 @@ export class AIPipeline {
 
   
 
-  
-  async query(options: QueryOptions): Promise<PipelineResult> {
+    async query(options: QueryOptions): Promise<PipelineResult> {
     const { query, decisions, activeFilePath, codeContext, history = [], stream, onChunk, signal } = options;
     const config = SettingsManager.get();
 
@@ -162,15 +146,13 @@ export class AIPipeline {
 
   
 
-  
-  invalidateCache(reason: string): void {
+    invalidateCache(reason: string): void {
     this.cache.invalidate(reason);
   }
 
   
 
-  
-  getSessionStats(): SessionStats {
+    getSessionStats(): SessionStats {
     return {
       ...this.stats,
       cacheStats: this.cache.getStats(),
@@ -178,8 +160,7 @@ export class AIPipeline {
     };
   }
 
-  
-  resetStats(): void {
+    resetStats(): void {
     this.stats = {
       totalInputTokens: 0,
       totalOutputTokens: 0,

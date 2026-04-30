@@ -1,13 +1,6 @@
 
 
 
-
-
-
-
-
-
-
 export type DecisionType =
   | 'pattern'     
   | 'constraint'  
@@ -34,22 +27,17 @@ export interface DecisionPayload {
   rationale: string;
   type: DecisionType;
   status: DecisionStatus;
-  
-  filePaths: string[];
-  
-  tags: string[];
-  
-  codeContext?: string;
-  
-  lineNumber?: number;
+    filePaths: string[];
+    tags: string[];
+    codeContext?: string;
+    lineNumber?: number;
 }
 
 export interface DecisionNode {
   id: string;
   type: 'decision';
   payload: DecisionPayload;
-  
-  embedding: Float32Array | null;
+    embedding: Float32Array | null;
   createdAt: string;   
   updatedAt: string;   
   authorName: string;

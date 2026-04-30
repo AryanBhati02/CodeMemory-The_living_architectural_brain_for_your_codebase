@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import * as vscode from 'vscode';
 import type { DecisionService } from '../decisions/decisionService';
 import type { AIPipeline } from '../ai/pipeline/AIPipeline';
@@ -57,7 +51,6 @@ async function suggestDecisionMetadata(
 
 
 
-
 export async function captureDecisionCommand(
   decisionService: DecisionService,
   treeProvider: DecisionTreeProvider,
@@ -82,10 +75,9 @@ export async function captureDecisionCommand(
   });
   if (!rationale) return;
 
-  let suggestion: SuggestedMetadata | null = null;
-  await vscode.window.withProgress(
+  const suggestion = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'CodeMemory: Suggesting type and tags…' },
-    async () => { suggestion = await suggestDecisionMetadata(pipeline, title, rationale); }
+    async () => { return await suggestDecisionMetadata(pipeline, title, rationale); }
   );
 
   const typeItems: DecisionTypeItem[] = [
@@ -112,7 +104,7 @@ export async function captureDecisionCommand(
     title: 'CodeMemory: Capture Decision (4/4)',
     prompt: 'Tags (comma-separated)',
     placeHolder: 'e.g. api, performance, security',
-    value: (suggestion as SuggestedMetadata | null)?.tags.join(', ') ?? '',
+    value: suggestion?.tags.join(', ') ?? '',
   });
   const tags = (tagsInput ?? '').split(',').map(t => t.trim()).filter(Boolean);
 
@@ -175,7 +167,6 @@ export async function searchDecisionsCommand(
     }
   }
 }
-
 
 
 
@@ -269,7 +260,6 @@ function buildStreamingResponseHtml(query: string): string {
 
 
 
-
 export async function navigateToDecisionCommand(node: any): Promise<void> {
   const filePaths = node?.payload?.filePaths ?? node?.filePaths ?? [];
   if (!filePaths.length) return;
@@ -280,7 +270,6 @@ export async function navigateToDecisionCommand(node: any): Promise<void> {
     vscode.window.showWarningMessage(`Could not open: ${filePaths[0]}`);
   }
 }
-
 
 
 
@@ -338,7 +327,6 @@ export async function editDecisionCommand(
 
 
 
-
 export async function deleteDecisionCommand(
   decisionService: DecisionService,
   node: any
@@ -352,7 +340,6 @@ export async function deleteDecisionCommand(
   decisionService.deleteDecision(node.id);
   vscode.window.showInformationMessage(`Decision "${node.payload.title}" deleted.`);
 }
-
 
 
 
@@ -388,7 +375,6 @@ export async function linkDecisionCommand(
 
 
 
-
 export async function exportDecisionsCommand(
   decisionService: DecisionService
 ): Promise<void> {
@@ -402,7 +388,6 @@ export async function exportDecisionsCommand(
   await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf-8'));
   vscode.window.showInformationMessage(`Exported ${decisions.length} decisions to ${uri.fsPath}`);
 }
-
 
 
 

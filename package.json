@@ -211,7 +211,8 @@
     "compile": "node esbuild.config.js",
     "watch": "node esbuild.config.js --watch",
     "package": "vsce package",
-    "test": "vitest run"
+    "test": "vitest run",
+    "benchmark": "npx ts-node --skip-project scripts/benchmark.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",

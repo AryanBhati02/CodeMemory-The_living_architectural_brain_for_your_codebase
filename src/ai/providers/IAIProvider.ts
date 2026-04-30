@@ -1,65 +1,33 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
 export interface AIRequestOptions {
-  
-  systemPrompt: string;
-  
-  messages: AIMessage[];
-  
-  maxTokens?: number;
-  
-  temperature?: number;
-  
-  extendedThinking?: boolean;
-  
-  thinkingBudget?: number;
-  
-  stream?: boolean;
-  
-  signal?: AbortSignal;
-  
-  model?: string;
+    systemPrompt: string;
+    messages: AIMessage[];
+    maxTokens?: number;
+    temperature?: number;
+    extendedThinking?: boolean;
+    thinkingBudget?: number;
+    stream?: boolean;
+    signal?: AbortSignal;
+    model?: string;
 }
 
 
 
 export interface AIResponse {
   content: string;
-  
-  thinking?: string;
+    thinking?: string;
   usage: {
     inputTokens: number;
     outputTokens: number;
-    
-    cacheWriteTokens?: number;
-    
-    cacheReadTokens?: number;
+        cacheWriteTokens?: number;
+        cacheReadTokens?: number;
   };
   fromCache: boolean;
   providerId: string;
@@ -89,37 +57,18 @@ export interface ProviderCapabilities {
 
 
 export interface IAIProvider {
-  
-  readonly id: string;
-  
-  readonly name: string;
-  
-  readonly capabilities: ProviderCapabilities;
-  
-  readonly accentColor: string;
-  
-  readonly description: string;
-  
-  readonly apiKeyUrl: string;
+    readonly id: string;
+    readonly name: string;
+    readonly capabilities: ProviderCapabilities;
+    readonly accentColor: string;
+    readonly description: string;
+    readonly apiKeyUrl: string;
 
-  
+    validateKey(apiKey: string): { valid: boolean; reason?: string };
 
+    generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse>;
 
-
-  validateKey(apiKey: string): { valid: boolean; reason?: string };
-
-  
-
-
-
-
-  generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse>;
-
-  
-
-
-
-  streamResponse(
+    streamResponse(
     apiKey: string,
     options: AIRequestOptions,
     onChunk: AIStreamCallback
