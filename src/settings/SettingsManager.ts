@@ -6,6 +6,7 @@ export interface CodeMemoryConfig {
   maxDecisionsPerQuery: number;
   cacheTtlSeconds: number;
   stuckDetectorEnabled: boolean;
+  driftDetectorEnabled: boolean;
 }
 
 export class SettingsManager {
@@ -18,6 +19,7 @@ export class SettingsManager {
       maxDecisionsPerQuery: cfg.get<number>('maxDecisionsPerQuery', 10),
       cacheTtlSeconds:      cfg.get<number>('cacheTtlSeconds',      300),
       stuckDetectorEnabled: cfg.get<boolean>('stuckDetectorEnabled', true),
+      driftDetectorEnabled: cfg.get<boolean>('driftDetectorEnabled', true),
     };
   }
 

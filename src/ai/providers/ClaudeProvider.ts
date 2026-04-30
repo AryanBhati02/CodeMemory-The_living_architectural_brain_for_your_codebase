@@ -82,7 +82,7 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          body.thinking    = { type: 'adaptive' };
+          body.thinking    = { type: 'adaptive' } as any;
           body.output_config = { effort: 'high' };
         } else {
           body.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
@@ -143,7 +143,7 @@ export class ClaudeProvider implements IAIProvider {
 
       if (options.extendedThinking) {
         if (this._isOpus47(requestModel)) {
-          params.thinking      = { type: 'adaptive' };
+          params.thinking      = { type: 'adaptive' } as any;
           params.output_config = { effort: 'high' };
         } else {
           params.thinking = { type: 'enabled', budget_tokens: options.thinkingBudget ?? 4096 };
@@ -162,7 +162,7 @@ export class ClaudeProvider implements IAIProvider {
       }
       onChunk({ delta: '', done: true });
 
-      const msg   = await stream.getFinalMessage();
+      const msg   = await stream.finalMessage();
       const usage = msg.usage as AnthropicUsageWithCaching;
       return {
         content: fullContent,

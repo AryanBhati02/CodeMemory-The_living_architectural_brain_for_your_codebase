@@ -198,6 +198,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable proactive decision suggestions when you appear stuck on a file."
+        },
+        "codememory.driftDetectorEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable drift detection — warns when saved code diverges from linked constraint decisions."
         }
       }
     }
@@ -221,6 +226,7 @@
     "@google/generative-ai": "^0.21.0",
     "@xenova/transformers": "^2.17.0",
     "better-sqlite3": "^9.6.0",
-    "openai": "^4.89.0"
+    "openai": "^4.89.0",
+    "strip-comments": "^2.0.1"
   }
 }

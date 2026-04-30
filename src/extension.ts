@@ -16,6 +16,7 @@ import { TokenDashboardPanel }    from './ui/TokenDashboardPanel';
 import { GraphPanel }             from './ui/GraphPanel';
 import { DecisionDetailPanel }    from './ui/DecisionDetailPanel';
 import { StuckDetector }          from './proactive/StuckDetector';
+import { DriftDetector }          from './proactive/DriftDetector';
 import { registerAllCommands }    from './commands/registry';
 
 
@@ -135,6 +136,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   if (config.stuckDetectorEnabled) {
     const stuckDetector = new StuckDetector(decisionService);
     context.subscriptions.push(stuckDetector);
+  }
+
+  
+  if (config.driftDetectorEnabled) {
+    const driftDetector = new DriftDetector(decisionService, embeddingQueue, decisionService.getRanker());
+    context.subscriptions.push(driftDetector);
   }
 
   

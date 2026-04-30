@@ -58,6 +58,8 @@ export class DecisionService implements vscode.Disposable {
     });
   }
 
+  getRanker(): SemanticRanker { return this.ranker; }
+
   
 
     async createDecision(

@@ -51,7 +51,7 @@ export async function captureDecisionCommand(
       await decisionService.createDecision({
         title,
         rationale,
-        type: typeChoice.id,
+        type: typeChoice.id as any,
         filePaths: filePath ? [filePath] : [],
         lineNumber,
         tags: [],
@@ -255,7 +255,7 @@ export async function editDecisionCommand(
   await decisionService.updateDecision(node.id, {
     title,
     rationale,
-    type:   typePick.id,
+    type:   typePick.id as any,
     status: statusPick.label,
   });
   vscode.window.showInformationMessage(`Decision updated: "${title}"`);
