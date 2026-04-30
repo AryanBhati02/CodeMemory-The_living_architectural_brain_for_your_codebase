@@ -25,14 +25,23 @@ const workerEntry = {
   external: ['@xenova/transformers'],
 };
 
+const mcpEntry = {
+  ...shared,
+  entryPoints: ['mcp-server/index.ts'],
+  outfile: 'dist/mcp-server/index.js',
+  external: ['better-sqlite3', '@modelcontextprotocol/sdk'],
+};
+
 if (isWatch) {
   Promise.all([
     esbuild.context(extensionEntry).then(ctx => ctx.watch()),
     esbuild.context(workerEntry).then(ctx => ctx.watch()),
-  ]).then(() => console.log('[esbuild] Watching both entry points...'));
+    esbuild.context(mcpEntry).then(ctx => ctx.watch()),
+  ]).then(() => console.log('[esbuild] Watching all entry points...'));
 } else {
   Promise.all([
     esbuild.build(extensionEntry),
     esbuild.build(workerEntry),
+    esbuild.build(mcpEntry),
   ]).catch(() => process.exit(1));
 }

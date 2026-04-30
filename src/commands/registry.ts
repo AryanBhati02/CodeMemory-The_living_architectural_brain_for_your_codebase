@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import {
   captureDecisionCommand,
@@ -17,7 +16,6 @@ import type { DecisionTreeProvider } from '../sidebar/DecisionTreeProvider';
 import type { ProviderDrawer }     from '../ui/ProviderDrawer';
 import type { TokenDashboardPanel } from '../ui/TokenDashboardPanel';
 import type { GraphPanel }          from '../ui/GraphPanel';
-
 export interface CommandDeps {
   context:         vscode.ExtensionContext;
   decisionService: DecisionService;
@@ -29,10 +27,8 @@ export interface CommandDeps {
   showGraphPanel:      () => void;
   showDecisionDetail:  (nodeId: string) => void;
 }
-
 export function registerAllCommands(deps: CommandDeps): void {
   const { context, decisionService, pipeline, treeProvider, providerDrawer } = deps;
-
   const cmds: Array<[string, (...args: any[]) => any]> = [
     [
       'codememory.captureDecision',
@@ -111,7 +107,6 @@ export function registerAllCommands(deps: CommandDeps): void {
       () => importDecisionsCommand(decisionService),
     ],
   ];
-
   for (const [id, handler] of cmds) {
     context.subscriptions.push(vscode.commands.registerCommand(id, handler));
   }

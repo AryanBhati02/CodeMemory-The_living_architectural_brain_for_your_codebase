@@ -1,17 +1,14 @@
-
 import OpenAI from 'openai';
 import {
   IAIProvider, AIRequestOptions, AIResponse,
   AIStreamCallback, AIProviderError, ProviderCapabilities,
 } from './IAIProvider';
-
 export class OpenAIProvider implements IAIProvider {
   readonly id = 'openai';
   readonly name = 'OpenAI';
   readonly accentColor = '#10A37F';
   readonly description = 'OpenAI GPT-4.1 — fast, capable, broad availability';
   readonly apiKeyUrl = 'https://platform.openai.com/api-keys';
-
   readonly capabilities: ProviderCapabilities = {
     supportsStreaming: true,
     supportsExtendedThinking: false,
@@ -21,7 +18,6 @@ export class OpenAIProvider implements IAIProvider {
     defaultModel: 'gpt-4.1',
     availableModels: ['gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4-turbo'],
   };
-
     validateKey(apiKey: string): { valid: boolean; reason?: string } {
     if (!apiKey?.startsWith('sk-')) {
       return { valid: false, reason: 'OpenAI keys begin with "sk-".' };
@@ -31,24 +27,20 @@ export class OpenAIProvider implements IAIProvider {
     }
     return { valid: true };
   }
-
     async generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse> {
     const client = new OpenAI({ apiKey });
     const t0 = Date.now();
-
     try {
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: 'system', content: options.systemPrompt },
         ...options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       ];
-
       const completion = await client.chat.completions.create({
         model: options.model ?? this.capabilities.defaultModel,
         max_tokens: options.maxTokens ?? 2048,
         temperature: options.temperature ?? 0.3,
         messages,
       });
-
       const choice = completion.choices[0];
       return {
         content: choice.message.content ?? '',
@@ -64,18 +56,15 @@ export class OpenAIProvider implements IAIProvider {
       throw this._normalizeError(err);
     }
   }
-
   /** Send a streaming chat completion request, calling onChunk for each content delta. */
   async streamResponse(apiKey: string, options: AIRequestOptions, onChunk: AIStreamCallback): Promise<AIResponse> {
     const client = new OpenAI({ apiKey });
     const t0 = Date.now();
-
     try {
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: 'system', content: options.systemPrompt },
         ...options.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       ];
-
       const stream = await client.chat.completions.create({
         model: options.model ?? this.capabilities.defaultModel,
         max_tokens: options.maxTokens ?? 2048,
@@ -83,7 +72,6 @@ export class OpenAIProvider implements IAIProvider {
         messages,
         stream: true,
       });
-
       let fullContent = '';
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content ?? '';
@@ -93,7 +81,6 @@ export class OpenAIProvider implements IAIProvider {
         }
       }
       onChunk({ delta: '', done: true });
-
       return {
         content: fullContent,
         usage: { inputTokens: 0, outputTokens: 0 }, // stream doesn't return usage in all versions
@@ -105,7 +92,6 @@ export class OpenAIProvider implements IAIProvider {
       throw this._normalizeError(err);
     }
   }
-
   private _normalizeError(err: unknown): AIProviderError {
     const e = err as { status?: number; statusCode?: number; message?: string };
     const status = e.status ?? e.statusCode;

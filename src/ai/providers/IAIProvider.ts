@@ -1,11 +1,7 @@
-
-
-
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
-
 export interface AIRequestOptions {
     systemPrompt: string;
     messages: AIMessage[];
@@ -17,9 +13,6 @@ export interface AIRequestOptions {
     signal?: AbortSignal;
     model?: string;
 }
-
-
-
 export interface AIResponse {
   content: string;
     thinking?: string;
@@ -33,17 +26,12 @@ export interface AIResponse {
   providerId: string;
   latencyMs: number;
 }
-
 export interface AIStreamChunk {
   delta: string;
   thinking?: string;
   done: boolean;
 }
-
 export type AIStreamCallback = (chunk: AIStreamChunk) => void;
-
-
-
 export interface ProviderCapabilities {
   supportsStreaming: boolean;
   supportsExtendedThinking: boolean;
@@ -53,9 +41,6 @@ export interface ProviderCapabilities {
   defaultModel: string;
   availableModels: string[];
 }
-
-
-
 export interface IAIProvider {
     readonly id: string;
     readonly name: string;
@@ -63,20 +48,14 @@ export interface IAIProvider {
     readonly accentColor: string;
     readonly description: string;
     readonly apiKeyUrl: string;
-
     validateKey(apiKey: string): { valid: boolean; reason?: string };
-
     generateResponse(apiKey: string, options: AIRequestOptions): Promise<AIResponse>;
-
     streamResponse(
     apiKey: string,
     options: AIRequestOptions,
     onChunk: AIStreamCallback
   ): Promise<AIResponse>;
 }
-
-
-
 export class AIProviderError extends Error {
   constructor(
     message: string,

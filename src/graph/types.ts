@@ -1,27 +1,19 @@
-
-
-
 export type DecisionType =
   | 'pattern'     
   | 'constraint'  
   | 'convention'  
   | 'why';        
-
 export type DecisionStatus =
   | 'proposed'    
   | 'accepted'    
   | 'deprecated'  
   | 'superseded'; 
-
 export type RelationType =
   | 'CONFLICTS_WITH'
   | 'DEPENDS_ON'
   | 'SUPERSEDES'
   | 'RELATED_TO'
   | 'APPLIES_TO';
-
-
-
 export interface DecisionPayload {
   title: string;
   rationale: string;
@@ -32,7 +24,6 @@ export interface DecisionPayload {
     codeContext?: string;
     lineNumber?: number;
 }
-
 export interface DecisionNode {
   id: string;
   type: 'decision';
@@ -43,7 +34,6 @@ export interface DecisionNode {
   authorName: string;
   authorEmail: string;
 }
-
 export interface DecisionEdge {
   id: string;  
   fromId: string;
@@ -53,9 +43,6 @@ export interface DecisionEdge {
   createdAt: string;
   note?: string;
 }
-
-
-
 export interface DecisionFilter {
   type?: DecisionType;
   status?: DecisionStatus;
@@ -65,7 +52,6 @@ export interface DecisionFilter {
   limit?: number;
   offset?: number;
 }
-
 export interface GraphStats {
   totalDecisions: number;
   byType: Record<DecisionType, number>;
@@ -73,27 +59,19 @@ export interface GraphStats {
   totalEdges: number;
   embeddingsReady: number;
 }
-
-
-
 export interface GraphChangeEvent {
   kind: 'insert' | 'update' | 'delete';
   nodeId: string;
   timestamp: number;
 }
-
 export interface ProviderChangeEvent {
   previousProviderId: string | null;
   newProviderId: string;
 }
-
-
-
 export interface EmbedRequest {
   nodeId: string;
   text: string;
 }
-
 export interface EmbedResult {
   nodeId: string;
   embedding: Float32Array;

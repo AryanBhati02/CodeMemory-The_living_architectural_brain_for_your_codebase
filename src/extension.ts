@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import { logger }                 from './utils/logger';
 import { SecretStorageService }   from './storage/secretStorage';
@@ -18,59 +17,30 @@ import { DecisionDetailPanel }    from './ui/DecisionDetailPanel';
 import { StuckDetector }          from './proactive/StuckDetector';
 import { DriftDetector }          from './proactive/DriftDetector';
 import { registerAllCommands }    from './commands/registry';
-
-
-
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.info('Extension', 'Activating — all phases unified');
-
-  
   const secrets = new SecretStorageService(context);
-
-  
   const config = SettingsManager.get();
-
-  
   const providerManager = ProviderManager.getInstance();
-  
   const savedProvider = secrets.getActiveProvider() ?? config.activeProviderId;
   try { providerManager.setActiveProvider(savedProvider); } catch {  }
-
-  
   const eventBus = new EventBus();
-
-  
   const dbManager = new DatabaseManager(context);
   const db = dbManager.getDatabase();
-
-  
   const embeddingQueue = new EmbeddingQueue(db, context.extensionPath);
   embeddingQueue.start().catch((err) => {
     logger.warn('Extension', `Embedding worker failed to start: ${String(err)}`);
   });
-
-  
   const decisionService = new DecisionService(db, embeddingQueue);
-
-  
   const aiPipeline = new AIPipeline(providerManager, secrets);
-
-  
   const treeProvider = new DecisionTreeProvider(decisionService);
   const treeView = vscode.window.createTreeView('codememory.decisionsTree', {
     treeDataProvider: treeProvider,
     showCollapseAll:  true,
   });
-
-  
   const decorationEngine = new DecorationEngine(context.extensionUri);
-  
   decorationEngine.updateDecisions(decisionService.getDecisions());
-
-  
   const providerDrawer = new ProviderDrawer(providerManager, secrets, context.extensionUri);
-
-  
   let tokenPanel: TokenDashboardPanel | undefined;
   registerAllCommands({
     context,
@@ -97,16 +67,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     },
   });
-
-  
   const statusBar = createStatusBar();
   const initialStats = decisionService.getGraphStats();
   updateStatusBar(statusBar, providerManager, { total: initialStats.totalDecisions, embedded: initialStats.embeddingsReady });
   context.subscriptions.push(statusBar);
-
-  
-
-  
   decisionService.onGraphChange((e) => {
     eventBus.fireGraphChange(e);
     aiPipeline.invalidateCache(`graph-${e.kind}:${e.nodeId}`);
@@ -115,23 +79,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const graphStats = decisionService.getGraphStats();
     updateStatusBar(statusBar, providerManager, { total: graphStats.totalDecisions, embedded: graphStats.embeddingsReady });
   });
-
-  
   embeddingQueue.onEmbeddingComplete(() => {
     treeProvider.refresh();
     const embedStats = decisionService.getGraphStats();
     updateStatusBar(statusBar, providerManager, { total: embedStats.totalDecisions, embedded: embedStats.embeddingsReady });
   });
-
-  
   providerDrawer.onProviderChanged((newId) => {
     eventBus.fireProviderChange({ previousProviderId: providerManager.getActiveProviderId(), newProviderId: newId });
     aiPipeline.invalidateCache('provider-switch');
     const switchStats = decisionService.getGraphStats();
     updateStatusBar(statusBar, providerManager, { total: switchStats.totalDecisions, embedded: switchStats.embeddingsReady });
   });
-
-  
   context.subscriptions.push(
     SettingsManager.onDidChange(() => {
       const cfg = SettingsManager.get();
@@ -140,30 +98,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       updateStatusBar(statusBar, providerManager, { total: cfgStats.totalDecisions, embedded: cfgStats.embeddingsReady });
     })
   );
-
-  
   if (config.stuckDetectorEnabled) {
     const stuckDetector = new StuckDetector(decisionService);
     context.subscriptions.push(stuckDetector);
   }
-
-  
   if (config.driftDetectorEnabled) {
     const driftDetector = new DriftDetector(decisionService, embeddingQueue, decisionService.getRanker());
     context.subscriptions.push(driftDetector);
   }
-
-  
   context.subscriptions.push(
     secrets, dbManager, embeddingQueue, decisionService,
     eventBus, treeView, decorationEngine, providerDrawer,
   );
-
   logger.info('Extension', 'Activation complete');
 }
-
-
-
 function createStatusBar(): vscode.StatusBarItem {
   const item = vscode.window.createStatusBarItem('codememory.status', vscode.StatusBarAlignment.Right, 100);
   item.command = 'codememory.selectProvider';
@@ -171,7 +119,6 @@ function createStatusBar(): vscode.StatusBarItem {
   item.show();
   return item;
 }
-
 function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager, stats?: { total: number; embedded: number }): void {
   const provider = pm.getActiveProvider();
   if (stats) {
@@ -181,10 +128,6 @@ function updateStatusBar(item: vscode.StatusBarItem, pm: ProviderManager, stats?
   }
   item.tooltip = `CodeMemory: ${provider.name} active — click to change`;
 }
-
-
-
 export function deactivate(): void {
-  
   ProviderManager.resetInstance();
 }
